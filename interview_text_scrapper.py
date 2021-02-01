@@ -19,9 +19,6 @@ def get_interview_text(interview_url):
     interview_time : String
         When this interview happened
 
-    interview_place: String
-        Where this interview happened
-
     interview_players: List[String]
         Interviewees
 
@@ -29,7 +26,7 @@ def get_interview_text(interview_url):
         An unprocessed String of raw interview text (including Questions and interviewee responses)
     """
     # example url: http://www.asapsports.com/show_conference.php?id=144725
-    print(interview_url)
+
     # fetch HTML
     request = requests.get(interview_url)
     soup = BeautifulSoup(request.content, 'html.parser')
@@ -41,8 +38,6 @@ def get_interview_text(interview_url):
         interview_name = str(soup.find_all('h1')[0].contents[0])
     assert len(soup.find_all('h2')) == 1
     interview_time = str(soup.find_all('h2')[0].contents[0])
-    assert len(soup.find_all('i')) == 1
-    interview_place = str(soup.find_all('i')[0].contents[0])
 
     # find all players attending this interview
     interview_players = []
@@ -68,7 +63,7 @@ def get_interview_text(interview_url):
     interview_text = interview_text.replace('\xa0', ' ')
     interview_text = interview_text.replace('Â', ' ')
 
-    return interview_name, interview_time, interview_place, interview_players, interview_text
+    return interview_name, interview_time, interview_players, interview_text
 
 
 def process_interview_text(text):
