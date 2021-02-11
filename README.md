@@ -1,5 +1,6 @@
-# Personalized-response-generation
+# Personalized response generation
+## Web scraping
 
-Run scrapper.py to download data from web again. No need to run if you want get football player interviews since those have already been downloaded.
+Run `scraper.py` to download data from web. No need to run if you want get football/basketball player interviews since those have already been downloaded.
 
-If you want to download interviews for players of other type of sports, change the highlighted area in scrapper.py by modifying the **folder path** and **url**. To find urls for other type of sports, go to http://www.asapsports.com/showcat.php?id=1&event=yes (the specific url for football) and select one sport category on the left.
+If you want to download interviews for players of other type of sports, change the highlighted area in `scraper.py` by modifying `sport_type` to one of the possible sport categories.
