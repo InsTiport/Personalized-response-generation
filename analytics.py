@@ -1,7 +1,12 @@
 import os
 import numpy as np
 
-SPORT_FOLDER_PATH = 'data/football'
+# Specifications. Change based on possible sport names (see scrapper.py)
+####################################################################
+sport_type = 'football'
+####################################################################
+
+SPORT_FOLDER_PATH = os.path.join('data', sport_type)
 
 interview_counts = []
 interview_counts_player = dict()

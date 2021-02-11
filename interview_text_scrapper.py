@@ -1,5 +1,5 @@
-import requests
-from bs4 import BeautifulSoup, NavigableString, Tag
+from bs4 import NavigableString, Tag
+from utils import get_html
 
 
 def get_interview_text(interview_url):
@@ -28,8 +28,7 @@ def get_interview_text(interview_url):
     # example url: http://www.asapsports.com/show_conference.php?id=144725
 
     # fetch HTML
-    request = requests.get(interview_url)
-    soup = BeautifulSoup(request.content, 'html.parser')
+    soup = get_html(interview_url)
 
     assert len(soup.find_all('h1')) == 1
     if soup.find_all('h1')[0].a is not None:

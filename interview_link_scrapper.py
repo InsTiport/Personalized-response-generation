@@ -1,7 +1,6 @@
 from typing import Dict, List
-import requests
 import tqdm
-from bs4 import BeautifulSoup
+from utils import get_html
 
 
 def get_player_interview_links_for_one_sport(sport_url):
@@ -19,12 +18,10 @@ def get_player_interview_links_for_one_sport(sport_url):
         A dictionary of pairs <player_name, list of interview urls for this player> for this sport
     """
 
-    r = requests.get(sport_url)
-
     '''
     get each initial's link (26 links, for names starting with A-Z)
     '''
-    soup = BeautifulSoup(r.content, 'html.parser')
+    soup = get_html(sport_url)
     player_initial_links = []
     for link in soup.find_all('a'):
         if 'letter=' in link.get('href'):
@@ -36,8 +33,7 @@ def get_player_interview_links_for_one_sport(sport_url):
     player_links: Dict[str, str] = dict()  # <player_name, player_url>
     for initial_link in player_initial_links:
         # get the webpage which contains all players whose names start with this initial
-        r = requests.get(initial_link)
-        soup = BeautifulSoup(r.content, 'html.parser')
+        soup = get_html(initial_link)
 
         # find all players on this page
         for link in soup.find_all('a'):
@@ -53,8 +49,7 @@ def get_player_interview_links_for_one_sport(sport_url):
         # initialize list to store all interviews for this player
         player_interview_links[player] = []
         # get the webpage which contains all interviews of this player
-        r = requests.get(player_link)
-        soup = BeautifulSoup(r.content, 'html.parser')
+        soup = get_html(player_link)
 
         # find all interviews for this player
         for interview_link in soup.find_all('a'):
@@ -63,3 +58,4 @@ def get_player_interview_links_for_one_sport(sport_url):
                 player_interview_links[player].append(interview_link.get('href'))
 
     return player_interview_links
+
