@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-# Specifications. Change based on possible sport names (see scrapper.py)
+# Specifications. Change based on possible sport names (see scraper.py)
 ####################################################################
 sport_type = 'football'
 ####################################################################
