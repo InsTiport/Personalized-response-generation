@@ -3,11 +3,7 @@ import tqdm
 from interview_link_scrapper import get_player_interview_links_for_one_sport
 from interview_text_scrapper import get_interview_text
 from typing import Dict, List
-
-# Specifications. Change based on possible sport names (see below)
-####################################################################
-sport_type = 'basketball'
-####################################################################
+import argparse
 
 ID_LOOKUP = {
     'football': 1,
@@ -30,30 +26,47 @@ ID_LOOKUP = {
     'cricket': 22
 }
 
-SPORT_FOLDER_PATH = os.path.join('data', sport_type)
-sport_url = f'http://www.asapsports.com/showcat.php?id={ID_LOOKUP[sport_type]}&event=yes'
 
-os.makedirs(os.path.dirname(SPORT_FOLDER_PATH + '/'), exist_ok=True)
+def main():
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument(
+        '-s', '--sport',
+        default='football',
+        choices=list(ID_LOOKUP.keys()),
+        help=f'Specify the sport type)'
+    )
+    args = arg_parser.parse_args()
 
-# get all interviews for all football players
-print(f'Getting all interviews for all {sport_type} players...')
-player_interview_links: Dict[str, List[str]] = get_player_interview_links_for_one_sport(sport_url)
+    sport_type = args.sport
 
-# write interviews to text files
-print(f'Writing interviews for all {sport_type} players to files...')
-for player, player_interview_urls in tqdm.tqdm(player_interview_links.items()):
-    os.makedirs(os.path.dirname(os.path.join(SPORT_FOLDER_PATH, player) + '/'), exist_ok=True)
-    count = 1
-    for interview_url in player_interview_urls:
-        name, time, players, text = get_interview_text(interview_url)
-        filename = os.path.join(SPORT_FOLDER_PATH, player, str(count))
-        count += 1
-        with open(filename, 'w') as f:
-            f.write(name + '\n')
-            f.write(time + '\n')
-            for player_name in players:
-                f.write(player_name + '\n')
-            f.write('START_OF_INTERVIEW_TEXT' + '\n')
-            f.write(text + '\n')
-            f.write('END_OF_INTERVIEW_TEXT')
-            f.close()
+    sport_folder_path = os.path.join('data', sport_type)
+    sport_url = f'http://www.asapsports.com/showcat.php?id={ID_LOOKUP[sport_type]}&event=yes'
+
+    os.makedirs(os.path.dirname(sport_folder_path + '/'), exist_ok=True)
+
+    # get all interviews for all football players
+    print(f'Getting all interviews for all {sport_type} players...')
+    player_interview_links: Dict[str, List[str]] = get_player_interview_links_for_one_sport(sport_url)
+
+    # write interviews to text files
+    print(f'Writing interviews for all {sport_type} players to files...')
+    for player, player_interview_urls in tqdm.tqdm(player_interview_links.items()):
+        os.makedirs(os.path.dirname(os.path.join(sport_folder_path, player) + '/'), exist_ok=True)
+        count = 1
+        for interview_url in player_interview_urls:
+            name, time, players, text = get_interview_text(interview_url)
+            filename = os.path.join(sport_folder_path, player, str(count))
+            count += 1
+            with open(filename, 'w') as f:
+                f.write(name + '\n')
+                f.write(time + '\n')
+                for player_name in players:
+                    f.write(player_name + '\n')
+                f.write('START_OF_INTERVIEW_TEXT' + '\n')
+                f.write(text + '\n')
+                f.write('END_OF_INTERVIEW_TEXT')
+                f.close()
+
+
+if __name__ == '__main__':
+    main()
