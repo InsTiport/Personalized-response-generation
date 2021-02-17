@@ -8,7 +8,9 @@ import requests
 sport_type = 'football'
 ####################################################################
 
-SPORT_FOLDER_PATH = os.path.join('../data', sport_type)
+# file system routine
+os.chdir('../')
+SPORT_FOLDER_PATH = os.path.join('data', sport_type)
 
 interview_count = 0
 player_count = 0
