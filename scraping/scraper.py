@@ -5,6 +5,7 @@ from interview_text_scrapper import get_interview_text
 from typing import Dict, List
 import argparse
 
+
 ID_LOOKUP = {
     'football': 1,
     'baseball': 2,
@@ -28,6 +29,7 @@ ID_LOOKUP = {
 
 
 def main():
+    # setup args
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument(
         '-s', '--sport',
@@ -39,12 +41,16 @@ def main():
 
     sport_type = args.sport
 
+    # file system routine
+    os.chdir('../')
     sport_folder_path = os.path.join('data', sport_type)
+
     sport_url = f'http://www.asapsports.com/showcat.php?id={ID_LOOKUP[sport_type]}&event=yes'
 
+    print(sport_folder_path + '/')
     os.makedirs(os.path.dirname(sport_folder_path + '/'), exist_ok=True)
 
-    # get all interviews for all football players
+    # get all interviews for all players
     print(f'Getting all interviews for all {sport_type} players...')
     player_interview_links: Dict[str, List[str]] = get_player_interview_links_for_one_sport(sport_url)
 

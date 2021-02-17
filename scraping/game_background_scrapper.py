@@ -8,7 +8,7 @@ import requests
 sport_type = 'football'
 ####################################################################
 
-SPORT_FOLDER_PATH = os.path.join('data', sport_type)
+SPORT_FOLDER_PATH = os.path.join('../data', sport_type)
 
 interview_count = 0
 player_count = 0
@@ -57,10 +57,10 @@ else:
 print(f"There are {len(search_result)} game types that have linked wikipedia pages.")
 
 wiki_wiki = wikipediaapi.Wikipedia('en')
-os.makedirs(os.path.join('data', 'wikipedia'), exist_ok=True)
+os.makedirs(os.path.join('../data', 'wikipedia'), exist_ok=True)
 for result in search_result:
-    os.makedirs(os.path.join('data', 'wikipedia', result[0]), exist_ok=True)
-    game_path_name = os.path.join('data', 'wikipedia', result[0])
+    os.makedirs(os.path.join('../data', 'wikipedia', result[0]), exist_ok=True)
+    game_path_name = os.path.join('../data', 'wikipedia', result[0])
     for page_name in result[1]:
         if not os.path.exists(os.path.join(game_path_name, page_name.replace('/', ' '))):
             open(os.path.join(game_path_name, page_name.replace('/', ' ')), 'x')

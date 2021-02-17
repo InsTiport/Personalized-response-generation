@@ -6,7 +6,7 @@ import numpy as np
 sport_type = 'football'
 ####################################################################
 
-SPORT_FOLDER_PATH = os.path.join('data', sport_type)
+SPORT_FOLDER_PATH = os.path.join('../data', sport_type)
 
 interview_counts = []
 interview_counts_player = dict()
