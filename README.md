@@ -14,4 +14,4 @@ These two files are not on Github and should not be put under version control (t
 
 ```python generate_csv.py```
 
-Currently, only football interviews will be processed to generate these two files. You should see 11391 episodes and utterances are generated.
+Currently, only football interviews will be processed to generate these two files. You should see 11,391 episodes and 2,075,986 utterances are generated.
