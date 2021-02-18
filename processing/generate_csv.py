@@ -82,6 +82,7 @@ def main():
                     f.close()
 
     print(f'Processed {episode_id} interviews in total.')
+    print(f"Generated {len(utterance['utterance'])} utterances in total.")
 
     df = pd.DataFrame(episode)
     df.to_csv(os.path.join('data', 'episode.csv'), index=False)
