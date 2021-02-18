@@ -56,22 +56,30 @@ def get_interview_text(interview_url):
                 # CASE 1: directly below td
                 if type(item) is NavigableString:
                     interview_text += str(item)
-                # CASE 2: 'b' Tag
-                elif type(item) is Tag and item.name == 'b':
-                    # cope with empty tags: <b></b>
+                # CASE 2: 'b' or 'p' Tag
+                elif type(item) is Tag and (item.name == 'b' or item.name == 'p'):
+                    # cope with empty tags: <b></b> <p></p>
                     if len(item.contents) > 0:
-                        # there may be a 'p' Tag under a 'b' Tag
+                        # there may be nested 'p' or 'b' Tags
                         for sub_item in item.contents:
                             if type(sub_item) is NavigableString:
                                 interview_text += str(sub_item)
-                            elif type(sub_item) is Tag and sub_item.name == 'p':
-                                # potential empty p Tag?
+                            # nested Tag
+                            elif type(sub_item) is Tag and (sub_item.name == 'p' or sub_item.name == 'b'):
                                 if len(sub_item.contents) > 0:
                                     interview_text += str(sub_item.contents[0])
-                # CASE 3: 'p' Tag
-                elif type(item) is Tag and item.name == 'p':
-                    if len(item.contents) > 0:
-                        interview_text += str(item.contents[0])
+                # # CASE 3: 'p' Tag
+                # elif type(item) is Tag and item.name == 'p':
+                #     if len(item.contents) > 0:
+                #         interview_text += str(item.contents[0])
+                #         # there may be a 'b' Tag under a 'p' Tag
+                #         for sub_item in item.contents:
+                #             if type(sub_item) is NavigableString:
+                #                 interview_text += str(sub_item)
+                #             elif type(sub_item) is Tag and sub_item.name == 'b':
+                #                 # potential empty b Tag?
+                #                 if len(sub_item.contents) > 0:
+                #                     interview_text += str(sub_item.contents[0])
 
     # safety check
     if not (len(interview_text) > 100 and '<' not in interview_text):

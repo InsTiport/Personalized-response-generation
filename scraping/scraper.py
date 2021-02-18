@@ -47,7 +47,7 @@ def main():
 
     sport_url = f'http://www.asapsports.com/showcat.php?id={ID_LOOKUP[sport_type]}&event=yes'
 
-    print(sport_folder_path + '/')
+    print(f'Will store scraped interviews in {sport_folder_path}/')
     os.makedirs(os.path.dirname(sport_folder_path + '/'), exist_ok=True)
 
     # get all interviews for all players
