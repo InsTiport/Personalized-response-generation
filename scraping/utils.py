@@ -21,7 +21,7 @@ def get_html(url):
     while True:
         try:
             r = requests.get(url)
-            soup = BeautifulSoup(r.content, 'html.parser')
+            soup = BeautifulSoup(r.content, 'html.parser', from_encoding='iso-8859-1')
             break
         except requests.exceptions.ConnectionError:
             sleep(1)
