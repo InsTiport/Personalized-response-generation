@@ -22,7 +22,7 @@ episode = {
 
 
 def main():
-    sports_type = ['football', 'basketball']
+    sports_type = ['football']
 
     # file system routine
     os.chdir('../')
@@ -64,7 +64,7 @@ def main():
                     else:
                         continue
 
-                    # deal with edge case, e.g., name with A.J. Westbrook
+                    # deal with names containing commas, e.g., A.J. Westbrook
                     interview_text = re.sub(r'([A-Z])\.([A-Z])\.', r'\1\2', interview_text)
 
                     '''
@@ -77,8 +77,10 @@ def main():
                     interviewees = process_text(interview_text, interviewees, episode_id)
                     episode['participants'].append('|'.join(interviewees))
 
+                    # increase counter
                     episode_id += 1
-
+                    # close file
+                    f.close()
                     break
             break
         break
