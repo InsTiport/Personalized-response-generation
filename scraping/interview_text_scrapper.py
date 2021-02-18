@@ -13,6 +13,9 @@ def get_interview_text(interview_url):
 
     Returns
     ------
+    correct : boolean
+        whether this interview text has been decoded correctly
+
     interview_name : String
         Name of this interview
 
@@ -57,41 +60,22 @@ def get_interview_text(interview_url):
                 if type(item) is NavigableString:
                     interview_text += str(item)
                 # CASE 2: 'b' or 'p' Tag
-                elif type(item) is Tag and (item.name == 'b' or item.name == 'p'):
-                    # cope with empty tags: <b></b> <p></p>
-                    if len(item.contents) > 0:
-                        # there may be nested 'p' or 'b' Tags
-                        for sub_item in item.contents:
-                            if type(sub_item) is NavigableString:
-                                interview_text += str(sub_item)
-                            # nested Tag
-                            elif type(sub_item) is Tag and (sub_item.name == 'p' or sub_item.name == 'b'):
-                                if len(sub_item.contents) > 0:
-                                    interview_text += str(sub_item.contents[0])
-                # # CASE 3: 'p' Tag
-                # elif type(item) is Tag and item.name == 'p':
-                #     if len(item.contents) > 0:
-                #         interview_text += str(item.contents[0])
-                #         # there may be a 'b' Tag under a 'p' Tag
-                #         for sub_item in item.contents:
-                #             if type(sub_item) is NavigableString:
-                #                 interview_text += str(sub_item)
-                #             elif type(sub_item) is Tag and sub_item.name == 'b':
-                #                 # potential empty b Tag?
-                #                 if len(sub_item.contents) > 0:
-                #                     interview_text += str(sub_item.contents[0])
+                elif type(item) is Tag and (item.name == 'b' or item.name == 'p' or item.name == 'br'):
+                    interview_text += item.text
 
-    # safety check
-    if not (len(interview_text) > 100 and '<' not in interview_text):
-        print(interview_url)
-    assert len(interview_text) > 100 and '<' not in interview_text
+    # check whether this interview has been processed correctly
+    correct = True if (len(interview_text) > 100 and '<' not in interview_text) else False
+    # if not correct:
+    #     print(interview_url)
 
     # remove #nbsp; \t and Â from text
     interview_text = interview_text.replace('\xa0', ' ')
     interview_text = interview_text.replace('\t', '\n')
     interview_text = interview_text.replace('Â', ' ')
+    # sometimes, this line will also be included :(
+    interview_text = interview_text.replace('FastScripts Transcript by ASAP Sports', '')
 
-    return interview_name, interview_time, interview_players, interview_text
+    return correct, interview_name, interview_time, interview_players, interview_text
 
 
 def process_interview_text(text):

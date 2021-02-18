@@ -59,13 +59,13 @@ def main():
                     interviewees = interviewees.split('\n')
 
                     # check if this interview has been processed before
-                    if interview_text not in already_seen:
-                        already_seen.add(interview_text)
+                    if interview_text[:100] not in already_seen:
+                        already_seen.add(interview_text[:100])
                     else:
                         continue
 
-                    # deal with names containing commas, e.g., A.J. Westbrook
-                    interview_text = re.sub(r'([A-Z])\.([A-Z])\.', r'\1\2', interview_text)
+                    # dealing with various kinds of format issues
+                    interview_text = process_text(interview_text)
 
                     '''
                     put relevant information into dictionaries
@@ -74,16 +74,14 @@ def main():
                     episode['is_interview'].append('conference' not in title.lower())
                     episode['title'].append(title)
                     episode['date'].append(date)
-                    interviewees = process_text(interview_text, interviewees, episode_id)
+                    interviewees = generate_utterance(interview_text, interviewees, episode_id)
                     episode['participants'].append('|'.join(interviewees))
 
-                    # increase counter
+                    # increase counter and close file
                     episode_id += 1
-                    # close file
                     f.close()
-                    break
-            break
-        break
+
+    print(f'Processed {episode_id} interviews in total.')
 
     df = pd.DataFrame(episode)
     df.to_csv(os.path.join('data', 'episode.csv'), index=False)
@@ -91,12 +89,27 @@ def main():
     df.to_csv(os.path.join('data', 'utterance.csv'), index=False)
 
 
-def process_text(text, speakers, episode_id):
+def process_text(text):
+    text = text.replace('L.A', 'LA')
+    text = text.replace('a.m.', 'am')
+    # deal with names containing commas, e.g., A.J. Westbrook
+    text = re.sub(r'([A-Z])\.([A-Z])\.', r'\1\2', text)
+    # may be a space between
+    text = re.sub(r'([A-Z])\. ([A-Z])\.', r'\1\2', text)
+    text = text.replace('K. Faulk', 'K Faulk')
+    text = text.replace('.com', 'DOTcom')
+    text = text.replace('No.', 'No')
+
+    return text
+
+
+def generate_utterance(text, speakers, episode_id):
     # counters
     speakers = [s.lower() for s in speakers]
     turn_id = -1
     turn_order = None
     current_speaker = None
+    previous_speaker = None
 
     # do some 'fancy' processing
     text = text.replace('.', '..')
@@ -115,51 +128,48 @@ def process_text(text, speakers, episode_id):
 
     # find utterances one by one, also keep track of turns
     for i, token in enumerate(after_split):
-        if i == 0 and not token.isupper():
+        if turn_id < 0 and not token.isupper():
             continue
 
+        token = token.strip()
         # check if a token represents a change of turn or is an utterance
-        if token.isupper():
+        if token.isupper() and (token[-1] == '.' or token[-1] == ':'):
             # often, there is one ':' or '.' after a person's name
             token = token[:-1]
-
+            temp = current_speaker
             '''
             deals with various kinds of names a person may have
             '''
             # most common case
             if token.lower() in speakers:
                 current_speaker = token.lower().title()
+            elif token == 'A':
+                current_speaker = previous_speaker
             # in case of interviewer, denote him/her by a special token
-            elif token == 'Q' or token == 'THE MODERATOR':
-                current_speaker = '[HOST]'
+            elif token == 'Q':
+                current_speaker = '[Q]'
+            # in case of moderator, denote him/her by a special token
+            elif token == 'THE MODERATOR':
+                current_speaker = '[MODERATOR]'
             # use partial match to pair some names, e.g., Coach Adams and John Adams
             elif partial_match(token, speakers) >= 0:
                 current_speaker = speakers[partial_match(token, speakers)].title()
-                # print(current_speaker)
-                # print(token.lower())
-                # print('\n')
             # there are cases when an interviewee is not present in the speakers list
-            elif len(token) > 1 and 'COACH' not in token:
+            elif len(token) > 1:
                 speakers.append(token.lower())
                 current_speaker = token.lower().title()
+            # maybe there is a typo, just skip
             else:
-                print(episode_id)
-                print(episode['title'][-1])
-                print(token)
-                print(speakers)
-                exit(0)
+                continue
 
-            # update counter
+            # update counter and previous speaker
             turn_order = 0
             turn_id += 1
+            previous_speaker = temp
         else:
+            # skip texts before any one speaks, possibly skipping game results
             if turn_order is None:
-                print(episode_id)
-                print(episode['title'][-1])
-                print(speakers)
-                print(after_split)
-                print(text)
-                exit(0)
+                continue
             # put utterance into dictionary
             utterance['episode_id'].append(episode_id)
             utterance['turn_id'].append(turn_id)

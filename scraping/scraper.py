@@ -56,22 +56,32 @@ def main():
 
     # write interviews to text files
     print(f'Writing interviews for all {sport_type} players to files...')
+    # keep track of some urls that are not able to decipher
+    exclude = set()
     for player, player_interview_urls in tqdm.tqdm(player_interview_links.items()):
         os.makedirs(os.path.dirname(os.path.join(sport_folder_path, player) + '/'), exist_ok=True)
         count = 1
         for interview_url in player_interview_urls:
-            name, time, players, text = get_interview_text(interview_url)
-            filename = os.path.join(sport_folder_path, player, str(count))
-            count += 1
-            with open(filename, 'w') as f:
-                f.write(name + '\n')
-                f.write(time + '\n')
-                for player_name in players:
-                    f.write(player_name + '\n')
-                f.write('START_OF_INTERVIEW_TEXT' + '\n')
-                f.write(text + '\n')
-                f.write('END_OF_INTERVIEW_TEXT')
-                f.close()
+            correct, name, time, players, text = get_interview_text(interview_url)
+            if correct:
+                filename = os.path.join(sport_folder_path, player, str(count))
+                count += 1
+                with open(filename, 'w') as f:
+                    f.write(name + '\n')
+                    f.write(time + '\n')
+                    for player_name in players:
+                        f.write(player_name + '\n')
+                    f.write('START_OF_INTERVIEW_TEXT' + '\n')
+                    f.write(text + '\n')
+                    f.write('END_OF_INTERVIEW_TEXT')
+                    f.close()
+            else:
+                exclude.add(interview_url)
+
+    # record urls that are not decoded correctly
+    with open(os.path.join(sport_folder_path, 'excluded_url.txt'), 'w') as f:
+        for excluded_url in exclude:
+            f.write(excluded_url + '\n')
 
 
 if __name__ == '__main__':
