@@ -9,9 +9,14 @@ To scrape interviews of other type of sports, inside `scraping` folder, run:
 
 Use `-h` to see available sports.
 
-## Generating `utterance.csv` and `episode.csv`
-These two files are not on Github and should not be put under version control (they are too large), and Git should ignore all csv files (see `.gitignore`). To generate these two files on your local machine, inside `processing` folder, run:
+## Generating `*_utterance.csv` and `*_episode.csv`
+These files are not on Github and should not be put under version control (they are too large), and Git should ignore all csv files (see `.gitignore`). 
+
+To generate these files on your local machine, inside `processing` folder, run:
 
 ```python generate_csv.py```
 
-Currently, only football interviews will be processed to generate these two files. You should see 11,391 episodes and 2,075,986 utterances are generated.
+You can find these files in `data/csv` after they are generated. Currently, only football and basketball interviews are available, and you should see 30,974 episodes and 4,442,689 utterances in total.
+
+## Troubleshooting
+If you see a `ModuleNotFoundError` while running any script on command line, this is because local scripts are not added to `PYTHONPATH`. Please use an IDE which has the functionality of automatically adding content roots to `PYTHONPATH` to run that script.

@@ -82,6 +82,7 @@ def main():
     with open(os.path.join(sport_folder_path, 'excluded_url.txt'), 'w') as f:
         for excluded_url in exclude:
             f.write(excluded_url + '\n')
+        f.close()
 
 
 if __name__ == '__main__':

@@ -34,6 +34,10 @@ def main():
     sports_type = list(ID_LOOKUP.keys())
     sports_type = [dir_name for dir_name in sports_type if os.path.exists(os.path.join('data', dir_name))]
 
+    # keep track of number of episodes and utterances
+    total_episodes = 0
+    total_utterances = 0
+
     # initialize counter for interview episode
     episode_id = 0
 
@@ -88,13 +92,23 @@ def main():
                     episode_id += 1
                     f.close()
 
-    print(f'Processed {episode_id} interviews in total.')
-    print(f"Generated {len(utterance['utterance'])} utterances in total.")
+        # write to files
+        os.makedirs(os.path.join('data', 'csv') + '/', exist_ok=True)
+        df = pd.DataFrame(episode)
+        df.to_csv(os.path.join('data', 'csv', f'{sport}_episode.csv'), index=False)
+        df = pd.DataFrame(utterance)
+        df.to_csv(os.path.join('data', 'csv', f'{sport}_utterance.csv'), index=False)
+        # update counters
+        total_episodes += len(episode['episode_id'])
+        total_utterances += len(utterance['utterance'])
+        # reset dictionaries
+        for e in episode:
+            episode[e] = []
+        for u in utterance:
+            utterance[u] = []
 
-    df = pd.DataFrame(episode)
-    df.to_csv(os.path.join('data', 'episode.csv'), index=False)
-    df = pd.DataFrame(utterance)
-    df.to_csv(os.path.join('data', 'utterance.csv'), index=False)
+    print(f'Processed {total_episodes} interviews in total.')
+    print(f'Generated {total_utterances} utterances in total.')
 
 
 def process_text(text):
