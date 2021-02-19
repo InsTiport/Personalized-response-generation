@@ -30,7 +30,7 @@ def main():
     sports_type = list(ID_LOOKUP.keys())
     sports_type = [dir_name for dir_name in sports_type if os.path.exists(os.path.join('data', dir_name))]
 
-    # keep track of number of episodes and utteranes
+    # keep track of number of episodes and utterances
     total_episodes = 0
     total_utterances = 0
 
