@@ -3,15 +3,14 @@ import csv
 import json
 import sys
 import tqdm
+from langdetect import detect
 sys.path.insert(0, os.path.abspath('..'))
 from processing.utils import tokenize, generate_vocab, generate_word_index_map, generate_indexed_sentences
 from scraping.scraper import ID_LOOKUP
 
-
 '''
 Run this script to re-generate vocabularies from all csv files. Will ERASE previous generated vocab files.
 '''
-
 
 # navigate to root directory in the project
 os.chdir('../')
@@ -29,7 +28,8 @@ for sport in sports_type:
         reader = csv.reader(f)
         # perform tokenization row (sentence) by row (sentence)
         for row in tqdm.tqdm(reader):
-            vocab.update(tokenize(row[-1]))
+            if detect(row[-1]) == 'en':  # make sure this sentence is in English
+                vocab.update(tokenize(row[-1]))
 
         f.close()
 
