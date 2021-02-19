@@ -1,7 +1,7 @@
 import os
 import tqdm
-from interview_link_scrapper import get_player_interview_links_for_one_sport
-from interview_text_scrapper import get_interview_text
+from scraping.interview_link_scrapper import get_player_interview_links_for_one_sport
+from scraping.interview_text_scrapper import get_interview_text
 from typing import Dict, List
 import argparse
 

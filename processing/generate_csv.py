@@ -1,3 +1,4 @@
+from scraping.scraper import ID_LOOKUP
 import pandas as pd
 import os
 import re
@@ -22,10 +23,12 @@ episode = {
 
 
 def main():
-    sports_type = ['football']
-
     # file system routine
     os.chdir('../')
+
+    # dynamically find all sport categories available
+    sports_type = list(ID_LOOKUP.keys())
+    sports_type = [dir_name for dir_name in sports_type if os.path.exists(os.path.join('data', dir_name))]
 
     # initialize counter for interview episode
     episode_id = 0

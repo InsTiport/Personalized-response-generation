@@ -1,5 +1,5 @@
 from bs4 import NavigableString, Tag
-from utils import get_html
+from scraping.utils import get_html
 
 
 def get_interview_text(interview_url):

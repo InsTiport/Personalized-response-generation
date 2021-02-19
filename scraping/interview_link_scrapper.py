@@ -1,6 +1,6 @@
 from typing import Dict, List
 import tqdm
-from utils import get_html
+from scraping.utils import get_html
 
 
 def get_player_interview_links_for_one_sport(sport_url):
