@@ -1,7 +1,10 @@
-from scraping.scraper import ID_LOOKUP
 import pandas as pd
 import os
 import re
+import sys
+sys.path.insert(0, os.path.abspath('..'))
+
+from scraping.scraper import ID_LOOKUP
 
 # dictionary to store interview utterances
 utterance = {
@@ -23,6 +26,7 @@ episode = {
 
 
 def main():
+
     # file system routine
     os.chdir('../')
 
