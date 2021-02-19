@@ -10,9 +10,9 @@ To scrape interviews of other type of sports, inside `scraping` folder, run:
 Use `-h` to see available sports.
 
 ## Generating `*_utterance.csv` and `*_episode.csv`
-These two kinds of files are not on Github and should not be put under version control (they are too large), and Git should ignore all csv files (see `.gitignore`). 
+These files are not on Github and should not be put under version control (they are too large), and Git should ignore all csv files (see `.gitignore`). 
 
-To generate these two kinds of files on your local machine, inside `processing` folder, run:
+To generate these files on your local machine, inside `processing` folder, run:
 
 ```python generate_csv.py```
 
