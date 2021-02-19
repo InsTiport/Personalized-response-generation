@@ -3,7 +3,7 @@ import csv
 import json
 import sys
 import tqdm
-from langdetect import detect
+from langdetect import detect, lang_detect_exception
 sys.path.insert(0, os.path.abspath('..'))
 from processing.utils import tokenize, generate_vocab, generate_word_index_map, generate_indexed_sentences
 from scraping.scraper import ID_LOOKUP
@@ -28,8 +28,12 @@ for sport in sports_type:
         reader = csv.reader(f)
         # perform tokenization row (sentence) by row (sentence)
         for row in tqdm.tqdm(reader):
-            if detect(row[-1]) == 'en':  # make sure this sentence is in English
-                vocab.update(tokenize(row[-1]))
+            # make sure this sentence is in English
+            try:
+                if detect(row[-1]) == 'en':
+                    vocab.update(tokenize(row[-1]))
+            except lang_detect_exception.LangDetectException:
+                continue
 
         f.close()
 
