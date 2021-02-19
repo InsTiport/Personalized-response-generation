@@ -47,7 +47,7 @@ def get_interview_text(interview_url):
     # find all players attending this interview
     interview_players = []
     for link in soup.find_all('a'):
-        if 'show_player.php' in link.get('href'):
+        if link.get('href') is not None and 'show_player.php' in link.get('href'):
             interview_players.append(str(link.contents[0]))
 
     # find interview text
