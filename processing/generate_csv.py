@@ -120,6 +120,7 @@ def process_text(text):
     text = text.replace('K. Faulk', 'K Faulk')
     text = text.replace('.com', 'DOTcom')
     text = text.replace('No.', 'No')
+    text = text.replace('Jr.', 'Jr')
 
     return text
 
