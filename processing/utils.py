@@ -1,5 +1,6 @@
 import spacy
 
+spacy.cli.download("en_core_web_sm")
 nlp = spacy.load("en_core_web_sm")
 
 
@@ -18,6 +19,7 @@ def tokenize(raw_text):
 
     return tokens
 
+
 def generate_vocab(tokens_list):
     """
     tokens_list: a list of tokenized sentences which are lists themselves
@@ -29,6 +31,7 @@ def generate_vocab(tokens_list):
             vocab.add(token)
 
     return vocab
+
 
 def generate_word_index_map(vocab):
     """
@@ -44,6 +47,7 @@ def generate_word_index_map(vocab):
 
     return word2idx, idx2word
 
+
 def generate_indexed_sentences(tokens_list, word2idx):
     """
     tokens_list: a list of tokenized sentences which are lists themselves
@@ -55,6 +59,5 @@ def generate_indexed_sentences(tokens_list, word2idx):
         for token in tokens:
             indexed_sentence.append(word2idx[token])
         indexed_sentences.append(indexed_sentence)
-    
+
     return indexed_sentences
-    
