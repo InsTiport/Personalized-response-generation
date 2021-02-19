@@ -5,7 +5,7 @@ import sys
 import tqdm
 from langdetect import detect, lang_detect_exception
 sys.path.insert(0, os.path.abspath('..'))
-from processing.utils import tokenize, generate_vocab, generate_word_index_map, generate_indexed_sentences
+from processing.utils import tokenize, generate_word_index_map
 from scraping.scraper import ID_LOOKUP
 
 '''
@@ -18,6 +18,7 @@ os.chdir('../')
 # dynamically find all sport categories available
 sports_type = list(ID_LOOKUP.keys())
 sports_type = [s for s in sports_type if os.path.exists(os.path.join('data', 'csv', f'{s}_utterance.csv'))]
+sports_type = ['football']
 
 print(f'Found {len(sports_type)} csv files to build vocabulary from.')
 # process every *_utterance.csv to build vocabulary
@@ -32,7 +33,11 @@ for sport in sports_type:
             try:
                 if detect(row[-1]) == 'en':
                     vocab.update(tokenize(row[-1]))
+                else:
+                    print(row[-1])
             except lang_detect_exception.LangDetectException:
+                print('cannot detect')
+                print(row[-1])
                 continue
 
         f.close()

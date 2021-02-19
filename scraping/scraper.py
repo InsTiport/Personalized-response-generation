@@ -37,7 +37,7 @@ def main():
         '-s', '--sport',
         default='football',
         choices=list(ID_LOOKUP.keys()),
-        help=f'Specify the sport type)'
+        help=f'Specify the sport type'
     )
     args = arg_parser.parse_args()
 

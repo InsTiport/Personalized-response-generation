@@ -47,7 +47,9 @@ def main():
     For each sport type, process all interviews and put relevant information into dictionaries
     '''
     for sport in sports_type:
+        print(f'Generating csv files for {sport}...')
         sport_folder_path = os.path.join('data', sport)
+
         # loop through all player folders for this type of sport to include all interviews
         for player_folder in os.scandir(sport_folder_path):
             # dealing with .DS_Store, make sure it's a folder
@@ -197,7 +199,7 @@ def generate_utterance(text, speakers, episode_id):
             utterance['turn_id'].append(turn_id)
             utterance['turn_order'].append(turn_order)
             utterance['speaker'].append(current_speaker)
-            utterance['utterance'].append(token)
+            utterance['utterance'].append(token.replace('(', '').replace(')', ''))
             turn_order += 1
 
     # the speakers list may have been updated, due to missing interviewee names

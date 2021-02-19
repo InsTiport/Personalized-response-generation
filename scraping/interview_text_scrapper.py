@@ -41,7 +41,8 @@ def get_interview_text(interview_url):
         interview_name = str(soup.find_all('h1')[0].a.contents[0])
     else:
         interview_name = str(soup.find_all('h1')[0].contents[0])
-    assert len(soup.find_all('h2')) == 1
+    if len(soup.find_all('h2')) != 1:
+        print(interview_url)
     interview_time = str(soup.find_all('h2')[0].contents[0])
 
     # find all players attending this interview
