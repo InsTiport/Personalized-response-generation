@@ -11,7 +11,7 @@ data_file = 'utterance.csv'
 
 tokens_list = list()
 line_count = 0
-with open(os.path.join('data', data_file), 'r') as f:
+with open(os.path.join('data', 'csv', data_file), 'r') as f:
     reader = csv.reader(f)
     for row in reader:
         tokens_list.append(tokenize(row[-1]))
@@ -28,9 +28,9 @@ os.mkdir('data/vocab')
 json.dump(word2idx, open(os.path.join('data', 'vocab', 'word2idx'), 'w'))
 json.dump(idx2word, open(os.path.join('data', 'vocab', 'idx2word'), 'w'))
 
-with open(os.path.join('data', data_file), 'r') as file_in:
+with open(os.path.join('data', 'csv', data_file), 'r') as file_in:
     reader = csv.reader(file_in)
-    with open(os.path.join('data', 'utterance_index.csv'), 'w') as file_out:
+    with open(os.path.join('data', 'csv', 'utterance_index.csv'), 'w') as file_out:
         writer = csv.writer(file_out)
         line = 0
         for row in reader:

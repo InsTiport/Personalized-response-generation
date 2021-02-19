@@ -6,7 +6,7 @@ indexed_data_file = "utterance_index.csv"
 # navigate to root directory in the project
 os.chdir("../")
 
-with open(os.path.join("data", indexed_data_file), 'r') as file_in:
+with open(os.path.join("data", 'csv', indexed_data_file), 'r') as file_in:
     with open(os.path.join("data", "naive_small.txt"), 'w') as file_out:
         reader = csv.reader(file_in)
         in_question = True
