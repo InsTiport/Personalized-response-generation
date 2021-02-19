@@ -1,4 +1,7 @@
 from bs4 import NavigableString, Tag
+import os
+import sys
+sys.path.insert(0, os.path.abspath('..'))
 from scraping.utils import get_html
 
 

@@ -3,7 +3,6 @@ import os
 import re
 import sys
 sys.path.insert(0, os.path.abspath('..'))
-
 from scraping.scraper import ID_LOOKUP
 
 # dictionary to store interview utterances

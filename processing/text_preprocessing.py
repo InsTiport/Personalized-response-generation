@@ -2,7 +2,9 @@ import os
 import csv
 import json
 import tqdm
-from utils import tokenize, generate_vocab, generate_word_index_map, generate_indexed_sentences
+import sys
+sys.path.insert(0, os.path.abspath('..'))
+from processing.utils import tokenize, generate_vocab, generate_word_index_map, generate_indexed_sentences
 
 # navigate to root directory in the project
 os.chdir('../')

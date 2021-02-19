@@ -1,5 +1,8 @@
 from typing import Dict, List
 import tqdm
+import os
+import sys
+sys.path.insert(0, os.path.abspath('..'))
 from scraping.utils import get_html
 
 

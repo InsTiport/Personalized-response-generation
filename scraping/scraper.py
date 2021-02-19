@@ -1,9 +1,11 @@
 import os
 import tqdm
-from scraping.interview_link_scrapper import get_player_interview_links_for_one_sport
-from scraping.interview_text_scrapper import get_interview_text
+import sys
 from typing import Dict, List
 import argparse
+sys.path.insert(0, os.path.abspath('..'))
+from scraping.interview_link_scrapper import get_player_interview_links_for_one_sport
+from scraping.interview_text_scrapper import get_interview_text
 
 
 ID_LOOKUP = {
