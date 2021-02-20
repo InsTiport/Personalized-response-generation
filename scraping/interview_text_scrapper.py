@@ -36,12 +36,15 @@ def get_interview_text(interview_url):
     # fetch HTML
     soup = get_html(interview_url)
 
-    assert len(soup.find_all('h1')) == 1
+    if len(soup.find_all('h1')) != 1:
+        print('h1 Tag is not unique, check url for details:')
+        print(interview_url)
     if soup.find_all('h1')[0].a is not None:
         interview_name = str(soup.find_all('h1')[0].a.contents[0])
     else:
         interview_name = str(soup.find_all('h1')[0].contents[0])
     if len(soup.find_all('h2')) != 1:
+        print('h2 Tag is not unique, check url for details:')
         print(interview_url)
     interview_time = str(soup.find_all('h2')[0].contents[0])
 
