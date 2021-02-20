@@ -49,6 +49,6 @@ word2idx, idx2word = generate_word_index_map(vocab)
 print(f'Vocabulary size is {len(vocab)}')
 
 # store the vocabulary dictionary for later use
-os.mkdir('data/vocab', exist_ok=True)
+os.makedirs('data/vocab', exist_ok=True)
 json.dump(word2idx, open(os.path.join('data', 'vocab', 'word2idx'), 'w'))
 json.dump(idx2word, open(os.path.join('data', 'vocab', 'idx2word'), 'w'))
