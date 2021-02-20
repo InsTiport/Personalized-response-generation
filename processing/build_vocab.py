@@ -18,7 +18,6 @@ os.chdir('../')
 # dynamically find all sport categories available
 sports_type = list(ID_LOOKUP.keys())
 sports_type = [s for s in sports_type if os.path.exists(os.path.join('data', 'csv', f'{s}_utterance.csv'))]
-sports_type = ['football']
 
 print(f'Found {len(sports_type)} csv files to build vocabulary from.')
 # process every *_utterance.csv to build vocabulary
