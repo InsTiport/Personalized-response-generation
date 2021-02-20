@@ -9,7 +9,7 @@ inside `processing`, run the following commands in order:
 
 This will generate all (`*_utterance_indexed.csv`) files to `data`.
 
-Note that some interview texts are non-English, and this phenomenon is especially prevalent among baseball and golf interviews.
+Note that some interview texts are non-English, and this phenomenon is especially prevalent among baseball, golf and soccer interviews.
 
 ## Documentation
 ### Web scraping
