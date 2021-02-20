@@ -9,11 +9,11 @@ inside `processing`, run the following commands in order:
 
 This will generate all (`*_utterance_indexed.csv`) files to `data`.
 
-Note that some interview texts are non-English, and this phenomenon is especially prevalent among baseball, golf and soccer interviews.
+Note that some interview texts are non-English, and this phenomenon is especially prevalent among baseball, golf and soccer interviews. Right now, English language checking is performed while generating csv files (`generate_csv.py`), not when generating vocabularies.
 
 ## Documentation
 ### Web scraping
-All scraped interview transcripts are located in `data/[sport_name]` folder. Football and basketball interviews have already been scraped.
+All scraped interview transcripts are located in `data/[sport_name]` folder. You don't need to redo this step since all interviews have been scrpaed.
 
 To scrape interviews of other type of sports, inside `scraping` folder, run (use `-h` to see available sports):
 
@@ -28,7 +28,7 @@ To generate these files on your local machine, inside `processing` folder, run:
 
 ```python generate_csv.py```
 
-You can find these files in `data/csv` after they are generated. Currently, only football and basketball interviews are available, and you should see 30,974 episodes and 4,442,689 utterances in total.
+You can find these files in `data/csv` after they are generated. English language checking is performed in this step and `non_English_interviews.txt` will be generated in each `data/[sport_name]` folder.
 
 ### Build vocabulary
 No need to perform this step again because the vocabulary files are already generated and pushed to Github, under `data/vocab`.
