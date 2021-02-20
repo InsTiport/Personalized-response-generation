@@ -1,0 +1,76 @@
+NHL ALL-STAR WEEKEND
+February 2, 2001
+Adam Acone
+Ray Bourque
+Jamey Horan
+Bob McCarthy
+Jeff Price
+START_OF_INTERVIEW_TEXT
+
+
+
+
+
+
+
+
+ADAM ACONE: Good evening, media members.  The NHL relationship with Trakus has been three years in the making, and this weekend's 51st All-Star Weekend presented by Nortel Networks will mark the professional debut  -- actually, I should say the debut of this technology in professional sports is with the cooperation of our network television partners ABC, eSPN, and CBC Hockey Night in Canada.  But the viewers' experience will be enhanced through on-screen graphics illustrating skating speed, distance skated, and player position.  During Sunday's All-Star Game viewers will be able to compare defensemen Ray Bourque and Nicklas Lidstrom, forwards Pavel Bure and Theoren Fleury as well as in Saturday night's Dodge/NHL SuperSkills, the fastest skater competition, the six participants that will also be wearing the Trakus technology; we will be able to determine exactly  how fast they are skating in terms of miles per hour.  NHL always prided itself as leader in technology innovation, particularly when it comes to television production.  We feel that the Trakus technology is something that keeps us moving in that direction.  I'd like to turn it over now to Jeff Price.  He can take you through more of the intimate details in terms of Trakus. 
+
+JEFF PRICE:  On behalf of the staff management Trakus, we are very pleased to partner with our friends at the NHL as well as the Players Association and the broadcast partners ESPN, CBC, and ABC to give fans across North America this weekend a sneak preview of the Trakus Hockey System. For many years there have been two streams of data of content that has been derived from on-ice performance:  audio stream and video stream.  Our digital sports information platform is pioneering the third stream what we call the digital stream.  This new genre of sports content is specifically engineered to bring fans closer to the game using our proprietary technology that has been four years in development.  Our system captures and quantifies real-time on-ice performance, distance skated, speed, power of a check and position on the ice.  Once this information has been captured, we then translate that data into real-time graphics and information that the fans will see on ESPN, ABC, and CBC this weekend in the coming months.  This platform will also be able to feed emerging media platforms like the internet, wireless devices in stadium systems, like the Jumbotron, as well as choice seat applications and other technology that will enhance the fans' experience in the stadium.  We also have the opportunity to enhance the coaching and scouting applications that are in existence the video-based systems of today tied to our data, will clearly enhance the coaches' ability to understand on-ice performance.  Ultimately we will look at interactive television and video games in the future as platforms that will all be enhanced.    At this point I'd like to turn the platform over to Bob McCarthy, our executive vice-president, general manager of engineering operation to give you a brief technical overview of our system works. 
+
+BOB McCARTHY:  Thank you.  As Jeff mentioned we have been in business about four years developing this technology.  We are at 60 people and three-quarters of our staff is dedicated to the engineering and technology behind the system.  Basically what we have put together is a system that can track where the players are on the ice and from that generate all of these statistics that Jeff mentioned.  The elements that make that happen are a player patch, basically a small electronic device that we put inside of a helmet to track the player and then antennae that  we put up around the top of the boards attached to what we call tower transreceivers around the rink; typically eight to ten of those. We plug that into some permanent infrastructure installed in a building very much the same way point-of-view cameras would be installed from television and then we bring all that data back to our production truck turning that into a graphic element for television.  What we have prepared a small video of our install here in Denver to walk you through the basic pieces of the system.  (Video is played.) 
+
+JAMEY HORAN:  Any questions? 
+
+
+Q.  Can you clarify beyond the All-Star Game this weekend when we will see the technology?  You talked about Stanley Cup Playoffs ...
+
+JEFF PRICE:  The Stanley Cup Finals, obviously there are a number of wildcards that work there; you got to be able to be in the right arenas to make sure that we can provide that coverage.  We are also working on an arena following Denver installed in Boston and we are anxiously anticipating March 24 when Ray Bourque makes his return to Boston and the opportunity to interface not just from a television standpoint but also with internet and the inner-arena application in the Center.  From there we will target the Stanley Cup Finals; then move to next season where we will deploy hopefully by the All-Star Game of next year and all 30 buildings have the opportunity to provide in long-term model coverage of every game and the value there is that not only could we provide information in real-time but we create a database with this information that you can compare shift-to-shift, game-to-game, season-to-season.  The long-term benefit of the data will become critical covering all games across the NHL.  That  is a key goal from a longterm perspective. 
+
+
+Q.  Will your technology  cross into other sports and also what is your biggest obstacle getting the technology into the NHL? 
+
+BOB McCARTHY: The technology is scalable.  Actually when we first developed the system architecture it was intended that the backend technology could scale to multiple sports.  The NHL, early in our company's existence, embraced the technology.  We have tailored it specifically for the hockey application with the NHL.  However, the player patch and tower transreceiver and our system patent cover electronic local area positioning systems so that could be anything, hockey, football, soccer, any number of different sports.  A little bit further down that path I guess I would describe that because we put a player patch in the players equipment and sports like hockey and American football where players wear equipment, it is a very natural first generation sport for us.  But sports like soccer and other sports where the players wear less equipment, pretty natural second generation sport for us.  We have really embraced hockey and tailored the hardware and the system for the application that we have here.  The system is definitely scalable.
+
+JEFF PRICE:  Following up in terms of the support of the NHL and the Players Association, both organizations from Commissioner Bettman on down have embraced the technology early on and the development really has been focused against hockey.  We have the scalability to go across multiple sports, but again, thanks to Adam and Doug and the folks at the NHL, we really focused on launching here with hockey.
+
+
+Q.  Are you concerned about the stat you are going to use about the power of the hits?  I know that is a concern for the NHL.  I imagine that will be a stat that will get blown up a lot. 
+
+ADAM ACONE:  One of things to understand, too, these will not be official NHL statistics.  I think that is important as we go down the road whether or not they become that way in the future, time will tell us, but these will not be collected as official statistics.  The hits that you are referring to it will be a marker, it will be a measurement that people can have some fun with.  So that if two big guys, you have the argument who is the toughest checker in the game and one guy pops up at a 95 and another guy pops up at 90, you have got some watercooler discussions for the next morning about:  Boy, did you see that hit.  That is what we think there is a lot of fun to this that the fans will be able to kind of grab on to and talk about because it is stuff that we can touch and feel.  If we can say that this player is going at 25 miles per hour now it suddenly means something. 
+
+
+Q.  Could you tell me what kind of hit or specific action would it take to jar the chip loose and are you worried or concerned about that and also because you are tracking these big hits like you said 95, 97, I don't know if that is an actual hit impact, but can you tell me what kind of concerns or what it would take to jar something like that loose? 
+
+BOB McCARTHY:  We have designed a player patch to be inserted inside the helmet to preserve the mechanical integrity of the helmet.  When I said that earlier what I meant was we go through the same certification testing pre and post installation of the player patch.  So that the hits that the testing go through are sufficiently representative of what is happening on the ice, therefore, that is the basis of the certification testing.  So not only does our player patch survive that, but the helmet integrity stays intact as well.  So survivability from the player patch, knocking the chip loose, that was the very -- and/or the safety to the player, both of those are preserved with our design.  That, as I mentioned, is the subject of one of our patents.  The second piece of the question was about the hit gauge.  The hit gauge attempts to capture all of the meaningful aspects of a hit.  So we take into consideration the closing velocities of the one or more players involved, any immobile object like the boards and the force of the impact at the collision, we wrap all those up in a scale or metric and normalize it so it is -- so that it is on reasonable scale to compare across various hits.  Also take into consideration the relative weights of the players involved.  Coming up with a metric to compare those things, I think the hit gauge captures all of that.  By tracking the players and their speeds we have all the raw ingredients to develop that metric then use that  -- we compare it often to the quarterback rating with the NFL.  Just a scale or metric that encompasses multiple different attributes of the collision.  Now we can compare that across players in the NHL or even perhaps across sports if you wanted to compare hockey to football, for example. 
+
+
+Q.  I know that you said in the video that there wasn't any sort of different feeling.  What was it like wearing this?   Did you feel uncomfortable for a while?  Did it take any getting used to or it just is--?
+
+RAY BOURQUE:   The thing feels the same.  It is my other helmet.  The padding is exactly the same.  And it fits the same.  So there is really no -- I couldn't notice anything really.  It might be slightly heavier, just slightly, but just from having one helmet and wearing the other one with that little chip in it.   If I would have wore that at the beginning of the year, I would have noticed no difference at all. 
+
+BOB McCARTHY:  A player patch is about 2.4
+ounces.  A helmet without face gear is about 20 ounces. 
+
+JEFF PRICE:  Anything just in terms of your thoughts, I know on the video you talked about what it can do for the fan in terms of the information that we are going to bring from the All-Star Game this weekend, your position, speed, distance skated.... 
+
+RAY BOURQUE:   I like to see the referees skate a little slower because I was told one skated a little quicker than I did.  (Laughter). No, I think it is pretty interesting for the viewer and for the people analyzing and doing the games and for coaches as well.  All the information that they could get and gather from this is pretty interesting for a player and I think it will be pretty neat to see how fast or how quick a player is or how hard somebody hits and all the different things that you can come up with through this chip.  It is new ,but I think it is really interesting and should be real exciting for a lot of people involved in this.  I am pretty excited and anxious to see where this is all going to go with the coaching and people during the games.  I think it is going to bring another element to the game that they will be able to work with and make it more interesting. 
+
+JEFF PRICE:  Do you think it has any impact potentially on the training regimen as you start to get stamina, speed in the first period, speed in the third period; you can accumulate that over time; are there things where the training regimen...
+
+RAY BOURQUE:  Possibly, if you see tendencies in terms of somebody slowing down in the third period, or a certain player, you might want to change things or certainly just the data of that should be real interesting for coaching.  Coaches and some of the guys that train the players. 
+
+
+Q.  Do you see a downside to that too when it comes to players aging and...
+
+RAY BOURQUE:  More meetings? 
+
+
+Q.  Yeah, more meetings, maybe contract talks where the general managers said, hey, you were 23 miles an hour four years ago; now you are at 18?
+
+RAY BOURQUE: Well, it hasn't affected me and I know I have slowed down quite a bit since ten years ago.  You just got to get smarted, that is the thing.  But I think just the data will be pretty interesting and fun.  Certainly for a coach and the training of a staff, I think it could bring something.  For the player   -- for me it was pretty neat to wear it and to find out some of the stuff and some of the stuff that we are going to find out in the future in this game on Sunday.  But I think coaches, calling you in, I think it can only help.  If they see that you are slowing down or whatever the case maybe in the third period, whatever, and saying, hey, we might have to work on a different kind of conditioning for you or something like that to keep your stamina up or whatever, I think that could only help the player in the long run. 
+
+
+End of FastScripts....
+
+END_OF_INTERVIEW_TEXT
