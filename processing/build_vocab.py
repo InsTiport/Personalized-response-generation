@@ -29,16 +29,18 @@ for sport in sports_type:
         reader = csv.reader(f)
         # perform tokenization row (sentence) by row (sentence)
         for row in tqdm.tqdm(reader):
-            # make sure this sentence is in English
-            try:
-                if detect(row[-1]) == 'en':
-                    vocab.update(tokenize(row[-1]))
-                else:
-                    print(row[-1])
-            except lang_detect_exception.LangDetectException:
-                print('cannot detect')
-                print(row[-1])
-                continue
+            vocab.update(tokenize(row[-1]))
+
+            # # make sure this sentence is in English
+            # try:
+            #     if detect(row[-1]) == 'en':
+            #         vocab.update(tokenize(row[-1]))
+            #     else:
+            #         print(row[-1])
+            # except lang_detect_exception.LangDetectException:
+            #     print('cannot detect')
+            #     print(row[-1])
+            #     continue
 
         f.close()
 

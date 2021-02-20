@@ -2,6 +2,8 @@ import pandas as pd
 import os
 import re
 import sys
+import tqdm
+from langdetect import detect
 sys.path.insert(0, os.path.abspath('..'))
 from scraping.scraper import ID_LOOKUP
 
@@ -43,6 +45,9 @@ def main():
     # store processed interviews here to avoid duplicates
     already_seen = set()
 
+    # store non-English interviews found
+    not_en = set()
+
     '''
     For each sport type, process all interviews and put relevant information into dictionaries
     '''
@@ -51,7 +56,7 @@ def main():
         sport_folder_path = os.path.join('data', sport)
 
         # loop through all player folders for this type of sport to include all interviews
-        for player_folder in os.scandir(sport_folder_path):
+        for player_folder in tqdm.tqdm(os.scandir(sport_folder_path)):
             # dealing with .DS_Store, make sure it's a folder
             if not os.path.isfile(player_folder):
                 # process a single interview/conference each iteration
@@ -70,7 +75,12 @@ def main():
                                                     remaining_text.index('END_OF_INTERVIEW_TEXT')]
                     interviewees = interviewees.split('\n')
 
-                    # check if this interview has been processed before
+                    # check if this interview is in English
+                    if detect(interview_text) != 'en':
+                        not_en.add(interview)
+                        continue
+
+                    # check whether this interview has been encountered before
                     if interview_text[:100] not in already_seen:
                         already_seen.add(interview_text[:100])
                     else:
@@ -99,14 +109,22 @@ def main():
         df.to_csv(os.path.join('data', 'csv', f'{sport}_episode.csv'), index=False)
         df = pd.DataFrame(utterance)
         df.to_csv(os.path.join('data', 'csv', f'{sport}_utterance.csv'), index=False)
+        # write non-English interviews discovered to file
+        with open(os.path.join(sport_folder_path, 'non_English_interviews.txt'), 'w') as f:
+            for interview in not_en:
+                f.write(interview.path + '\n')
+            f.close()
+
         # update counters
         total_episodes += len(episode['episode_id'])
         total_utterances += len(utterance['utterance'])
-        # reset dictionaries
+        # reset dictionaries and sets
         for e in episode:
             episode[e] = []
         for u in utterance:
             utterance[u] = []
+        not_en = set()
+        already_seen = set()
 
     print(f'Processed {total_episodes} interviews in total.')
     print(f'Generated {total_utterances} utterances in total.')

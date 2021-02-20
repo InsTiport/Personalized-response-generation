@@ -30,29 +30,31 @@ for sport in sports_type:
             for row in tqdm.tqdm(reader):
                 if line > 0:  # don't want to change the titles
 
-                    # check whether this utterance is in English
-                    try:
-                        is_en = detect(row[-1]) == 'en'
-                        if not is_en:
-                            print(row[-1])
-                    except lang_detect_exception.LangDetectException:
-                        is_en = False
-                        print(row[-1])
+                    # # check whether this utterance is in English
+                    # try:
+                    #     is_en = detect(row[-1]) == 'en'
+                    #     if not is_en:
+                    #         print(row[-1])
+                    # except lang_detect_exception.LangDetectException:
+                    #     is_en = False
+                    #     print(row[-1])
 
-                    # if this utterance is in English, convert it into indexed version
-                    if is_en:
-                        try:
-                            row[-1] = generate_indexed_sentences([tokenize(row[-1])], word2idx)[0]
-                        except KeyError:
-                            print(tokenize(row[-1]))
-                            for token in tokenize(row[-1]):
-                                if token not in word2idx.keys():
-                                    print(f'{token} not in vocabulary.')
-                            exit(0)
-                    # add value for new column
-                    row.append(is_en)
-                else:  # new column: if this utterance is in English
-                    row.append('is_en')
+                    # # if this utterance is in English, convert it into indexed version
+                    # if is_en:
+
+                    try:
+                        row[-1] = generate_indexed_sentences([tokenize(row[-1])], word2idx)[0]
+                    except KeyError:
+                        print(tokenize(row[-1]))
+                        for token in tokenize(row[-1]):
+                            if token not in word2idx.keys():
+                                print(f'{token} not in vocabulary.')
+                        exit(0)
+
+                    # # add value for new column
+                    # row.append(is_en)
+                # else:  # new column: if this utterance is in English
+                #     row.append('is_en')
 
                 # write to file
                 writer.writerow(row)
