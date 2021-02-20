@@ -28,7 +28,7 @@ To generate these files on your local machine, inside `processing` folder, run:
 
 ```python generate_csv.py```
 
-You can find these files in `data/csv` after they are generated. English language checking is performed in this step and `non_English_interviews.txt` will be generated in each `data/[sport_name]` folder.
+You can find these files in `data/csv` after they are generated. English language checking is performed in this step and `non_English_interviews.txt` will be generated in each `data/[sport_name]` folder. You should see 149,591 interviews and 15,639,895 utterances in total.
 
 ### Build vocabulary
 No need to perform this step again because the vocabulary files are already generated and pushed to Github, under `data/vocab`.
