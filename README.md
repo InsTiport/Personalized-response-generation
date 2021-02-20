@@ -9,15 +9,17 @@ inside `processing`, run the following commands in order:
 
 This will generate all (`*_utterance_indexed.csv`) files to `data`.
 
+Note that some interview texts are non-English, and this phenomenon is especially prevalent among baseball and golf interviews.
+
 ## Documentation
 ### Web scraping
-All scraped interview transcripts are located in `data` folder. Football and basketball interviews have already been scraped.
+All scraped interview transcripts are located in `data/[sport_name]` folder. Football and basketball interviews have already been scraped.
 
-To scrape interviews of other type of sports, inside `scraping` folder, run:
+To scrape interviews of other type of sports, inside `scraping` folder, run (use `-h` to see available sports):
 
-```python scraper.py -s [sport name]```
+```python scraper.py -s [sport_name]```
 
-Use `-h` to see available sports.
+The scraper will also create an `excluded_url.txt` file in each `data/[sport_name]` folder. This file documents all urls that are excluded while processing because their contents are unable to decode properly for any reason.
 
 ### Generate `*_utterance.csv` and `*_episode.csv`
 These files are not on Github and should not be put under version control (they are too large), and Git should ignore all csv files (see `.gitignore`). You must run the following command to generate these files. 
