@@ -24,7 +24,7 @@ print(f'Found {len(sports_type)} csv files to build vocabulary from.')
 vocab = set()
 for sport in sports_type:
     with open(os.path.join('data', 'csv', f'{sport}_utterance.csv'), 'r') as f:
-        print(f'Building vocabulary for {sport}_utterance.csv...')
+        print(f'Building vocabulary from {sport}_utterance.csv...')
         reader = csv.reader(f)
         # perform tokenization row (sentence) by row (sentence)
         for row in tqdm.tqdm(reader):
@@ -42,6 +42,7 @@ for sport in sports_type:
             #     continue
 
         f.close()
+        print(f'The current vocabulary size is {len(vocab)}')
 
 # generate vocabulary
 word2idx, idx2word = generate_word_index_map(vocab)
