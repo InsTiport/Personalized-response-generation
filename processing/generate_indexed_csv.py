@@ -14,7 +14,6 @@ os.chdir('../')
 # dynamically find all sport categories available
 sports_type = list(ID_LOOKUP.keys())
 sports_type = [s for s in sports_type if os.path.exists(os.path.join('data', 'csv', f'{s}_utterance.csv'))]
-sports_type = ['football']
 
 # load vocabulary
 word2idx = json.load(open(os.path.join('data', 'vocab', 'word2idx')))
