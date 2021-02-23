@@ -1,7 +1,9 @@
 # Personalized response generation
 
 ## Quickstart
-inside `processing`, run the following commands in order:
+Get indexed version of tokenized texts [here](https://drive.google.com/drive/folders/1EzdSebTBt30p6iVQvq_3v5CURFqvkn6U?usp=sharing).
+
+Alternatively, you can run the following commands to generate these files. Inside `processing`, run the following commands in order:
 
 ```python generate_csv.py```
 
