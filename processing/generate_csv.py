@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import tqdm
+import pysbd
 from langdetect import detect
 sys.path.insert(0, os.path.abspath('..'))
 from scraping.scraper import ID_LOOKUP
@@ -27,6 +28,8 @@ episode = {
 
 
 def main():
+    # sentence boundary detection
+    seg = pysbd.Segmenter(language="en", clean=False)
 
     # file system routine
     os.chdir('../')
@@ -86,8 +89,8 @@ def main():
                     else:
                         continue
 
-                    # dealing with various kinds of format issues
-                    interview_text = process_text(interview_text)
+                    # break the interview text into sentences
+                    sentences = list(seg.segment(interview_text))
 
                     '''
                     put relevant information into dictionaries
@@ -96,7 +99,7 @@ def main():
                     episode['is_interview'].append('conference' not in title.lower())
                     episode['title'].append(title)
                     episode['date'].append(date)
-                    interviewees = generate_utterance(interview_text, interviewees, episode_id)
+                    interviewees = generate_utterance(sentences, interviewees, episode_id)
                     episode['participants'].append('|'.join(interviewees))
 
                     # increase counter and close file
@@ -130,22 +133,7 @@ def main():
     print(f'Generated {total_utterances} utterances in total.')
 
 
-def process_text(text):
-    text = text.replace('L.A', 'LA')
-    text = text.replace('a.m.', 'am')
-    # deal with names containing commas, e.g., A.J. Westbrook
-    text = re.sub(r'([A-Z])\.([A-Z])\.', r'\1\2', text)
-    # may be a space between
-    text = re.sub(r'([A-Z])\. ([A-Z])\.', r'\1\2', text)
-    text = text.replace('K. Faulk', 'K Faulk')
-    text = text.replace('.com', 'DOTcom')
-    text = text.replace('No.', 'No')
-    text = text.replace('Jr.', 'Jr')
-
-    return text
-
-
-def generate_utterance(text, speakers, episode_id):
+def generate_utterance(sentences, speakers, episode_id):
     # counters
     speakers = [s.lower() for s in speakers]
     turn_id = -1
@@ -153,75 +141,80 @@ def generate_utterance(text, speakers, episode_id):
     current_speaker = None
     previous_speaker = None
 
-    # do some 'fancy' processing
-    text = text.replace('.', '..')
-    text = text.replace('?', '??')
-    text = text.replace(':', '::')
-    text = text.replace('\n', '\n\n')
-    text = text.replace('!', '!!')
-    text = re.sub(r'(\.)\.', r'\1@', text)
-    text = re.sub(r'(\?)\?', r'\1@', text)
-    text = re.sub(r'(:):', r'\1@', text)
-    text = re.sub(r'(\n)\n', r'\1@', text)
-    text = re.sub(r'(!)!', r'\1@', text)
-    # split the raw text based on several delimiters
-    after_split = text.split('@')
-    after_split = [s.strip() for s in after_split if len(s.strip()) > 1]
+    sentences = [s.strip() for s in sentences if len(s.strip()) > 1]
 
     # find utterances one by one, also keep track of turns
-    for i, token in enumerate(after_split):
-        if turn_id < 0 and not token.isupper():
+    for i, sentence in enumerate(sentences):
+        start_of_turn = check_start_of_turn(sentence)
+        if turn_id < 0 and not start_of_turn:
             continue
 
-        token = token.strip()
+        sentence = sentence.strip()
         # check if a token represents a change of turn or is an utterance
-        if token.isupper() and (token[-1] == '.' or token[-1] == ':'):
-            # often, there is one ':' or '.' after a person's name
-            token = token[:-1]
+        if start_of_turn:
+            speaker, sentence = start_of_turn
             temp = current_speaker
             '''
             deals with various kinds of names a person may have
             '''
             # most common case
-            if token.lower() in speakers:
-                current_speaker = token.lower().title()
-            elif token == 'A':
+            if speaker.lower() in speakers:
+                current_speaker = speaker.lower().title()
+            elif speaker == 'A':
                 current_speaker = previous_speaker
             # in case of interviewer, denote him/her by a special token
-            elif token == 'Q':
+            elif speaker == 'Q':
                 current_speaker = '[Q]'
             # in case of moderator, denote him/her by a special token
-            elif token == 'THE MODERATOR':
+            elif speaker == 'THE MODERATOR':
                 current_speaker = '[MODERATOR]'
             # use partial match to pair some names, e.g., Coach Adams and John Adams
-            elif partial_match(token, speakers) >= 0:
-                current_speaker = speakers[partial_match(token, speakers)].title()
+            elif partial_match(speaker, speakers) >= 0:
+                current_speaker = speakers[partial_match(speaker, speakers)].title()
             # there are cases when an interviewee is not present in the speakers list
-            elif len(token) > 1:
-                speakers.append(token.lower())
-                current_speaker = token.lower().title()
+            elif len(speaker) > 1:
+                speakers.append(speaker.lower())
+                current_speaker = speaker.lower().title()
             # maybe there is a typo, just skip
             else:
                 continue
+
+            sentence = sentence.strip()
 
             # update counter and previous speaker
             turn_order = 0
             turn_id += 1
             previous_speaker = temp
-        else:
-            # skip texts before any one speaks, possibly skipping game results
-            if turn_order is None:
-                continue
-            # put utterance into dictionary
-            utterance['episode_id'].append(episode_id)
-            utterance['turn_id'].append(turn_id)
-            utterance['turn_order'].append(turn_order)
-            utterance['speaker'].append(current_speaker)
-            utterance['utterance'].append(token.replace('(', '').replace(')', ''))
-            turn_order += 1
+
+        # skip texts before any one speaks, possibly skipping game results
+        if turn_order is None:
+            continue
+        # put utterance into dictionary
+        utterance['episode_id'].append(episode_id)
+        utterance['turn_id'].append(turn_id)
+        utterance['turn_order'].append(turn_order)
+        utterance['speaker'].append(current_speaker)
+        utterance['utterance'].append(sentence.replace('(', '').replace(')', ''))
+        turn_order += 1
 
     # the speakers list may have been updated, due to missing interviewee names
     return [s.title() for s in speakers]
+
+
+def check_start_of_turn(s):
+    s = s.strip()
+
+    # Q. or A.
+    if s[:2] == 'Q.' or s[:2] == 'A.':
+        return [s[0], s[2:]]
+
+    # other cases have a semicolon present
+    if ':' not in s:
+        return False
+    semicolon_idx = s.index(':')
+    if not s[:semicolon_idx].isupper():
+        return False
+    return [s[:semicolon_idx], s[semicolon_idx + 1:]]
 
 
 def partial_match(name_to_match, names):
