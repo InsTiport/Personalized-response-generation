@@ -45,16 +45,15 @@ def main():
     # initialize counter for interview episode
     episode_id = 0
 
-    # store processed interviews here to avoid duplicates
-    already_seen = set()
-
-    # store non-English interviews found
-    not_en = set()
-
     '''
     For each sport type, process all interviews and put relevant information into dictionaries
     '''
     for sport in sports_type:
+        # store processed interviews here to avoid duplicates
+        already_seen = set()
+        # store non-English interviews found
+        not_en = set()
+
         print(f'Generating csv files for {sport}...')
         sport_folder_path = os.path.join('data', sport)
 
@@ -126,8 +125,6 @@ def main():
             episode[e] = []
         for u in utterance:
             utterance[u] = []
-        not_en = set()
-        already_seen = set()
 
     print(f'Processed {total_episodes} interviews in total.')
     print(f'Generated {total_utterances} utterances in total.')

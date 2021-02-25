@@ -3,7 +3,6 @@ import csv
 import json
 import sys
 import tqdm
-from langdetect import detect, lang_detect_exception
 sys.path.insert(0, os.path.abspath('..'))
 from processing.utils import tokenize, generate_word_index_map
 from scraping.scraper import ID_LOOKUP
