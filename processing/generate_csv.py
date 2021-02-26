@@ -37,14 +37,6 @@ def main():
     # dynamically find all sport categories available
     sports_type = list(ID_LOOKUP.keys())
     sports_type = [dir_name for dir_name in sports_type if os.path.exists(os.path.join('data', dir_name))]
-    sports_type.remove('football')
-    sports_type.remove('baseball')
-    sports_type.remove('auto_racing')
-    sports_type.remove('golf')
-    sports_type.remove('hockey')
-    sports_type.remove('tennis')
-    sports_type.remove('equestrian')
-    sports_type.remove('track_and_field')
 
     # keep track of number of episodes and utterances
     total_episodes = 0
