@@ -17,3 +17,4 @@ for batch in iterator:
     # sample usage
     print(batch.q)
     print(batch.r)
+    break
