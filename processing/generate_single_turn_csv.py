@@ -180,7 +180,6 @@ def generate_utterance(csv_writer, sentences, speakers, episode_id):
             # in case of moderator, denote him/her by a special token
             elif speaker == 'THE MODERATOR':
                 if qa_pair['q'] != '' and qa_pair['a'] != '':
-                    print('here')
                     csv_writer.writerow([episode_id, turn_id, qa_pair['q'], qa_pair['a']])
                 # clear storage
                 qa_pair = qa_pair.fromkeys(qa_pair, '')
