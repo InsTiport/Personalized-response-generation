@@ -67,8 +67,6 @@ def main():
                     '''
                     title = fo.readline()[:-1]
                     date = fo.readline()[:-1]
-                    print(title)
-                    print(date)
                     # remove repeating \n's and also replace the French 'e' with normal 'e'
                     remaining_text = re.sub(r'\n+', '\n', fo.read()).strip().replace('Ã©', 'e')
                     interviewees = remaining_text[:remaining_text.index('START_OF_INTERVIEW_TEXT') - 1]
