@@ -1,6 +1,7 @@
 from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import AdamW
 import torch
+import torch.nn as nn
 from torchtext.data import TabularDataset, BucketIterator, RawField
 import numpy as np
 import os
@@ -74,8 +75,8 @@ for epo in range(NUM_EPOCH):
     # evaluation
     model.eval()
     with torch.no_grad():
-        total_loss = 0
-        token_num = 0
+        batch_num = 0
+        perplexity_sum = 0
         for batch in valid_iterator:
             # input encoding
             input_encoding = tokenizer(batch.q, return_tensors='pt', padding=True, truncation=True)
@@ -92,10 +93,10 @@ for epo in range(NUM_EPOCH):
 
             # loss
             loss = outputs.loss
-            total_loss += loss.item()
-            token_num += torch.count_nonzero(attention_mask != 0)
+            perplexity_sum += np.exp(loss.item())
+            batch_num += 1
 
-        perplexity = torch.exp(total_loss / token_num)
+        perplexity = perplexity_sum / batch_num
         print(f'Perplexity: {perplexity}')
 
 # save model
