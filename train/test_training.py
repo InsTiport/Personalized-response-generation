@@ -2,10 +2,15 @@ from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import AdamW
 import torch
 from torchtext.data import TabularDataset, BucketIterator, RawField
+import numpy as np
 import os
 import tqdm
 
 os.chdir('../')
+
+# control 
+torch.manual_seed(0)
+np.random.seed(0)
 
 # hyper-parameter
 BATCH_SIZE = 1
@@ -17,6 +22,8 @@ question = RawField()
 response = RawField()
 fields = {'question': ('q', question), 'response': ('r', response)}
 dataset = TabularDataset(path=os.path.join('data', 'csv', 'single_turn_utterance.csv'), format='csv', fields=fields)
+
+# FIXME: Does it produce consistent splitting?
 train_set, test_set, valid_set = dataset.split([0.98, 0.01, 0.01])
 train_iterator = BucketIterator(dataset=train_set, batch_size=BATCH_SIZE)
 valid_iterator = BucketIterator(dataset=valid_set, batch_size=BATCH_SIZE)
@@ -86,7 +93,7 @@ for epo in range(NUM_EPOCH):
             # loss
             loss = outputs.loss
             total_loss += loss.item()
-            token_num += torch.sum(torch.ones(target_ids.size(), device=device) * (target_ids != 0).to(device))
+            token_num += torch.count_nonzero(attention_mask != 0)
 
         perplexity = torch.exp(total_loss / token_num)
         print(f'Perplexity: {perplexity}')
