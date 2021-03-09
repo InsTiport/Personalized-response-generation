@@ -2,71 +2,83 @@ import os
 import json
 import wikipediaapi
 import requests
+import sys
+
+sys.path.insert(0, os.path.abspath('..'))
+from scraping.scraper import ID_LOOKUP
+
 
 # Specifications. Change based on possible sport names (see scraper.py)
 ####################################################################
-sport_type = 'football'
+sports_type = list(ID_LOOKUP.keys())
 ####################################################################
 
 # file system routine
 os.chdir('../')
-SPORT_FOLDER_PATH = os.path.join('data', sport_type)
 
 interview_count = 0
 player_count = 0
 games_list = set()
-for player_folder in os.scandir(SPORT_FOLDER_PATH):
-    player_count += 1
-    for interview_text in os.scandir(player_folder):
-        interview_count += 1
-        with open(interview_text) as f:
-            game_title = f.readline().strip()
-            games_list.add(game_title)
+for sport in sports_type:
+    SPORT_FOLDER_PATH = os.path.join('data', sport)
+    for player_folder in os.scandir(SPORT_FOLDER_PATH):
+        player_count += 1
+        if os.path.isdir(player_folder):
+            for interview_text in os.scandir(player_folder):
+                if interview_text.name.isnumeric():
+                    interview_count += 1
+                    with open(interview_text) as f:
+                        game_title = f.readline().strip()
+                        games_list.add(game_title)
 
 game_types_list = set()
 for game in games_list:
     game_types_list.add(game.split(':')[0])
 
 print(f"{player_count} players")
-print(f"There are {len(games_list)} distinct {sport_type} games among {interview_count} interviews.")
-print(f"There are {len(game_types_list)} distinct {sport_type} game types in total")
+print(f"There are {len(games_list)} distinct games among {interview_count} interviews.")
+print(f"There are {len(game_types_list)} distinct game types in total")
 
-if not os.path.exists(os.path.join("game_search_result")):
+if not os.path.exists(os.path.join("scraping", "game_search_result")):
     # search pages on Wikipedia
     S = requests.Session()
     URL = "https://en.wikipedia.org/w/api.php"
     PARAMS = {
-        "action": "opensearch",
-        "namespace": "0",
-        "search": "",
+        "action": "query",
         "format": "json",
+        "list": "search",
+        "srsearch": "", # query
+        "srlimit": 10 # max number of pages to return
     }
 
-    search_result = list()
+    search_result = dict()
     for game_type in game_types_list:
-        PARAMS["search"] = game_type
+        PARAMS["srsearch"] = game_type
         R = S.get(url=URL, params=PARAMS)
         DATA = R.json()
-        if len(DATA[1]) != 0:
-            search_result.append(DATA)
-            print(DATA[0])
-    file_output = open(os.path.join("game_search_result"), "x")
+        result_list = DATA['query']['search']
+        if len(result_list) == 0:
+            print("no match for", game_type)
+        else:
+            search_result[game_type] = result_list
+            # print(game_type + "       :::::       " +  result_list[0]['title'])
+    file_output = open(os.path.join("scraping", "game_search_result"), "x")
     json.dump(search_result, file_output)
 else:
-    search_result = json.loads(open(os.path.join("game_search_result")).readline())
+    search_result = json.loads(open(os.path.join("scraping", "game_search_result")).readline())
 
-
+for sport in sports_type:
+    SPORT_FOLDER_PATH = os.path.join('data', sport)
+    for player_folder in os.scandir(SPORT_FOLDER_PATH):
+        if os.path.isdir(player_folder):
+            for file_ in os.scandir(player_folder):
+                if file_.name.isnumeric():
+                    context_file = open(os.path.join(os.path.dirname(file_), 'wiki_result_' + file_.name), 'w')
+                    file_in = open(file_)
+                    game_type = file_in.readline().strip().split(':')[0]
+                    if game_type in search_result:
+                        json.dump(search_result[game_type], context_file)
+                    context_file.close()
+                    file_in.close()
+                    
 print(f"There are {len(search_result)} game types that have linked wikipedia pages.")
-
-wiki_wiki = wikipediaapi.Wikipedia('en')
-os.makedirs(os.path.join('../data', 'wikipedia'), exist_ok=True)
-for result in search_result:
-    os.makedirs(os.path.join('../data', 'wikipedia', result[0]), exist_ok=True)
-    game_path_name = os.path.join('../data', 'wikipedia', result[0])
-    for page_name in result[1]:
-        if not os.path.exists(os.path.join(game_path_name, page_name.replace('/', ' '))):
-            open(os.path.join(game_path_name, page_name.replace('/', ' ')), 'x')
-        wiki_page = wiki_wiki.page(page_name)
-        with open(os.path.join(game_path_name, page_name.replace('/', ' ')), 'w') as f:
-            f.write(wiki_page.summary)
-        
