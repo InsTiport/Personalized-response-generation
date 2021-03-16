@@ -1,7 +1,6 @@
 from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import AdamW
 import torch
-import torch.nn as nn
 from torchtext.data import TabularDataset, BucketIterator, RawField
 import numpy as np
 import os
@@ -13,22 +12,38 @@ os.chdir('../')
 torch.manual_seed(0)
 np.random.seed(0)
 
-# hyper-parameter
+'''
+hyper-parameter 
+'''
+
 BATCH_SIZE = 1
 NUM_EPOCH = 5
 SAVE_PATH = os.path.join('model', 'BART')
 
-# load dataset
+
+'''
+load dataset
+'''
+# prepare fields (needed when loading dataset)
 question = RawField()
 response = RawField()
 fields = {'question': ('q', question), 'response': ('r', response)}
-dataset = TabularDataset(path=os.path.join('data', 'csv', 'single_turn_utterance.csv'), format='csv', fields=fields)
+# load dataset
+train_set, valid_set, test_set = TabularDataset.splits(path=os.path.join('data', 'csv'),
+                                                       train='smaller_utterance_train.csv',
+                                                       validation='smaller_utterance_valid.csv',
+                                                       test='smaller_utterance_test.csv',
+                                                       format='csv',
+                                                       fields=fields)
+# split dataset into batches
+train_iterator = BucketIterator(dataset=train_set, batch_size=BATCH_SIZE, shuffle=True)
+valid_iterator = BucketIterator(dataset=valid_set, batch_size=BATCH_SIZE, shuffle=True)
+test_iterator = BucketIterator(dataset=test_set, batch_size=BATCH_SIZE, shuffle=True)
 
-# FIXME: Does it produce consistent splitting?
-train_set, test_set, valid_set = dataset.split([0.98, 0.01, 0.01])
-train_iterator = BucketIterator(dataset=train_set, batch_size=BATCH_SIZE)
-valid_iterator = BucketIterator(dataset=valid_set, batch_size=BATCH_SIZE)
 
+'''
+model and tokenizer
+'''
 # model and tokenizer
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-base').to(device)
@@ -48,6 +63,11 @@ for epo in range(NUM_EPOCH):
     model.train()
     per_batch = tqdm.tqdm(train_iterator)
     for batch in per_batch:
+        # FIXME for now, skip all invalid question-answer pairs
+        for q in batch.q:
+            if len(q) >= 685:
+                continue
+
         # input encoding
         input_encoding = tokenizer(batch.q, return_tensors='pt', padding=True, truncation=True)
         input_ids = input_encoding['input_ids'].to(device)
@@ -78,6 +98,11 @@ for epo in range(NUM_EPOCH):
         batch_num = 0
         perplexity_sum = 0
         for batch in valid_iterator:
+            # FIXME for now, skip all invalid question-answer pairs
+            for q in batch.q:
+                if len(q) >= 685:
+                    continue
+
             # input encoding
             input_encoding = tokenizer(batch.q, return_tensors='pt', padding=True, truncation=True)
             input_ids = input_encoding['input_ids'].to(device)
@@ -86,7 +111,7 @@ for epo in range(NUM_EPOCH):
             # target encoding
             target_encoding = tokenizer(batch.r, return_tensors='pt', padding=True, truncation=True)
             target_ids = target_encoding['input_ids'].to(device)
-            target_ids[target_ids == 1] = -100
+            target_ids[target_ids == model.config.pad_token_id] = -100
 
             # forward pass
             outputs = model(input_ids, attention_mask=attention_mask, labels=target_ids)
