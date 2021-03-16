@@ -11,6 +11,7 @@ os.chdir('../')
 # control 
 torch.manual_seed(0)
 np.random.seed(0)
+torch.cuda.set_device(3)
 
 '''
 hyper-parameter 
