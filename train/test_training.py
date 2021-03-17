@@ -34,10 +34,14 @@ NUM_EPOCH = args.epoch
 '''
 control and logging
 '''
+# use a free GPU
 torch.cuda.set_device(DEVICE_ID)
+# control randomness
 torch.manual_seed(0)
 np.random.seed(0)
+# model saving and logging paths
 MODEL_NAME = f'bart-base_epoch_{NUM_EPOCH}_bsz_{BATCH_SIZE}_small_utterance'
+os.makedirs(os.path.dirname('model' + '/'), exist_ok=True)
 SAVE_PATH = os.path.join('model', f'{MODEL_NAME}.pt')
 log_file = open(os.path.join('model', f'{MODEL_NAME}.log'), 'w')
 
