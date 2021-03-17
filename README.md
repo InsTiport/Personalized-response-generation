@@ -14,7 +14,7 @@ Arguments:
 
 To evaluate trained model, inside `training`, run:
 
-``python -W ignore test_eval.py ...```
+```python -W ignore test_eval.py ...```
 
 Running this script will compute perplexity and BLEU scores on the validation dataset. The evaluation result will be logged into a file with `.ev` extension under `model`. If you run this script multiple times, previous results won't be erased, but concatenated to that file at the end. This is useful for comparing evaluation results of different decoding schemes.
 
