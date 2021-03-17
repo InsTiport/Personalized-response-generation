@@ -9,3 +9,5 @@ pysbd~=0.3.4
 torch~=1.7.1
 torchtext~=0.8.1
 transformers~=4.3.3
+datasets~=1.4.1
+sacrebleu~=1.5.1

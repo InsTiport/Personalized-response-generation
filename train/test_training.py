@@ -27,15 +27,13 @@ os.chdir('../')
 '''
 hyper-parameter 
 '''
-DEVICE_ID = 3
+DEVICE_ID = 3  # adjust this to use an unoccupied GPU
 BATCH_SIZE = args.batch
 NUM_EPOCH = args.epoch
 
 '''
 control and logging
 '''
-# use a free GPU
-torch.cuda.set_device(DEVICE_ID)
 # control randomness
 torch.manual_seed(0)
 np.random.seed(0)
@@ -74,9 +72,13 @@ test_iterator = BucketIterator(dataset=test_set, batch_size=BATCH_SIZE, shuffle=
 '''
 model and tokenizer
 '''
-# model and tokenizer
+# CUDA settings
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+if device == 'cuda':
+    torch.cuda.set_device(DEVICE_ID)  # use an unoccupied GPU
+# load model
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-base').to(device)
+# load tokenizer
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
 # optimizer
