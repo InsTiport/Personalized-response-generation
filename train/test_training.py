@@ -6,20 +6,21 @@ import numpy as np
 import os
 import tqdm
 
-os.chdir('../')
-
-# control 
-torch.manual_seed(0)
-np.random.seed(0)
-torch.cuda.set_device(3)
 
 '''
 hyper-parameter 
 '''
-
+DEVICE_ID = 3
 BATCH_SIZE = 1
 NUM_EPOCH = 5
 SAVE_PATH = os.path.join('model', 'BART')
+
+os.chdir('../')
+
+# control
+torch.manual_seed(0)
+np.random.seed(0)
+torch.cuda.set_device(DEVICE_ID)
 
 '''
 load dataset
@@ -92,8 +93,8 @@ for epo in range(NUM_EPOCH):
         optimizer.step()
 
         if idx % 1000 == 0:
-            print(f'memory reserved {torch.cuda.memory_reserved(0) / 1e9} GB')
-            print(f'memory allocated {torch.cuda.memory_allocated(0) / 1e9} GB')
+            print(f'memory reserved {torch.cuda.memory_reserved(DEVICE_ID) / 1e9} GB')
+            print(f'memory allocated {torch.cuda.memory_allocated(DEVICE_ID) / 1e9} GB')
         idx += 1
 
         total_loss += float(loss)
