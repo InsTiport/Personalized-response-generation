@@ -1,5 +1,4 @@
 import argparse
-
 from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import AdamW
 import torch
@@ -16,20 +15,24 @@ arg_parser.add_argument(
     default=5,
     help=f'Specify number of training epochs'
 )
+arg_parser.add_argument(
+    '-b', '--batch',
+    type=int,
+    default=3,
+    help=f'Specify batch size'
+)
 args = arg_parser.parse_args()
-
+os.chdir('../')
 
 '''
 hyper-parameter 
 '''
 DEVICE_ID = 3
-BATCH_SIZE = 1
+BATCH_SIZE = args.batch
 NUM_EPOCH = args.epoch
-SAVE_PATH = os.path.join('model', 'BART')
+SAVE_PATH = os.path.join('model', f'bart-base_epoch_{NUM_EPOCH}_bsz_{BATCH_SIZE}_small_utterance')
 
-print(f'training for {NUM_EPOCH} epochs')
-
-os.chdir('../')
+print(f'Training for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
 
 # control
 torch.manual_seed(0)
