@@ -1,3 +1,5 @@
+import argparse
+
 from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import AdamW
 import torch
@@ -6,14 +8,26 @@ import numpy as np
 import os
 import tqdm
 
+# setup args
+arg_parser = argparse.ArgumentParser()
+arg_parser.add_argument(
+    '-e', '--epoch',
+    type=int,
+    default=5,
+    help=f'Specify number of training epochs'
+)
+args = arg_parser.parse_args()
+
 
 '''
 hyper-parameter 
 '''
 DEVICE_ID = 3
 BATCH_SIZE = 1
-NUM_EPOCH = 5
+NUM_EPOCH = args.epoch
 SAVE_PATH = os.path.join('model', 'BART')
+
+print(f'training for {NUM_EPOCH} epochs')
 
 os.chdir('../')
 
