@@ -21,7 +21,6 @@ BATCH_SIZE = 1
 NUM_EPOCH = 5
 SAVE_PATH = os.path.join('model', 'BART')
 
-
 '''
 load dataset
 '''
@@ -41,7 +40,6 @@ train_iterator = BucketIterator(dataset=train_set, batch_size=BATCH_SIZE, shuffl
 valid_iterator = BucketIterator(dataset=valid_set, batch_size=BATCH_SIZE, shuffle=True)
 test_iterator = BucketIterator(dataset=test_set, batch_size=BATCH_SIZE, shuffle=True)
 
-
 '''
 model and tokenizer
 '''
@@ -60,10 +58,13 @@ optimizer = AdamW(optimizer_grouped_parameters, lr=1e-5)
 
 # training loop
 for epo in range(NUM_EPOCH):
-    # training
     model.train()
-    per_batch = tqdm.tqdm(train_iterator)
-    for batch in per_batch:
+    total_loss = 0
+
+    # training
+    train_iterator_with_progress = tqdm.tqdm(train_iterator)
+    idx = 0
+    for batch in train_iterator_with_progress:
         # FIXME for now, skip all invalid question-answer pairs
         for q in batch.q:
             if len(q) >= 685:
@@ -90,8 +91,16 @@ for epo in range(NUM_EPOCH):
         loss.backward()
         optimizer.step()
 
-        per_batch.set_description(f'Epoch {epo}')
-        per_batch.set_postfix({'Loss': loss.item()})
+        if idx % 1000 == 0:
+            print(f'memory reserved {torch.cuda.memory_reserved(0) / 1e9} GB')
+            print(f'memory allocated {torch.cuda.memory_allocated(0) / 1e9} GB')
+        idx += 1
+
+        total_loss += float(loss)
+        train_iterator_with_progress.set_description(f'Epoch {epo}')
+        train_iterator_with_progress.set_postfix({'Loss': loss.item()})
+
+    print(f'Loss in epoch {epo}: {total_loss}')
 
     # evaluation
     model.eval()
