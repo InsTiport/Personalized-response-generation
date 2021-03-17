@@ -83,18 +83,21 @@ for epo in range(NUM_EPOCH):
     train_iterator_with_progress = tqdm.tqdm(train_iterator)
     idx = 0
     for batch in train_iterator_with_progress:
-        # FIXME for now, skip all invalid question-answer pairs
-        for q in batch.q:
-            if len(q) >= 685:
-                continue
+        # FIXME for now, skip all invalid question-answer pairs (those having questions longer than 685)
+        remove_idx = [i for i, q in enumerate(batch.q) if len(q) >= 685]
+        batch_q = [q for i, q in enumerate(batch.q) if i not in remove_idx]
+        batch_r = [r for i, r in enumerate(batch.r) if i not in remove_idx]
+        assert len(batch_q) == len(batch_r)
+        if len(batch_q) == 0:
+            continue
 
         # input encoding
-        input_encoding = tokenizer(batch.q, return_tensors='pt', padding=True, truncation=True)
+        input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
         input_ids = input_encoding['input_ids'].to(device)
         attention_mask = input_encoding['attention_mask'].to(device)
 
         # target encoding
-        target_encoding = tokenizer(batch.r, return_tensors='pt', padding=True, truncation=True)
+        target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
         target_ids = target_encoding['input_ids'].to(device)
         target_ids[target_ids == model.config.pad_token_id] = -100
 
@@ -126,18 +129,21 @@ for epo in range(NUM_EPOCH):
         batch_num = 0
         perplexity_sum = 0
         for batch in valid_iterator:
-            # FIXME for now, skip all invalid question-answer pairs
-            for q in batch.q:
-                if len(q) >= 685:
-                    continue
+            # FIXME for now, skip all invalid question-answer pairs (those having questions longer than 685)
+            remove_idx = [i for i, q in enumerate(batch.q) if len(q) >= 685]
+            batch_q = [q for i, q in enumerate(batch.q) if i not in remove_idx]
+            batch_r = [r for i, r in enumerate(batch.r) if i not in remove_idx]
+            assert len(batch_q) == len(batch_r)
+            if len(batch_q) == 0:
+                continue
 
             # input encoding
-            input_encoding = tokenizer(batch.q, return_tensors='pt', padding=True, truncation=True)
+            input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
             input_ids = input_encoding['input_ids'].to(device)
             attention_mask = input_encoding['attention_mask'].to(device)
 
             # target encoding
-            target_encoding = tokenizer(batch.r, return_tensors='pt', padding=True, truncation=True)
+            target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
             target_ids = target_encoding['input_ids'].to(device)
             target_ids[target_ids == model.config.pad_token_id] = -100
 
