@@ -30,14 +30,18 @@ hyper-parameter
 DEVICE_ID = 3
 BATCH_SIZE = args.batch
 NUM_EPOCH = args.epoch
-SAVE_PATH = os.path.join('model', f'bart-base_epoch_{NUM_EPOCH}_bsz_{BATCH_SIZE}_small_utterance')
 
-print(f'Training for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
-
-# control
+'''
+control and logging
+'''
+torch.cuda.set_device(DEVICE_ID)
 torch.manual_seed(0)
 np.random.seed(0)
-torch.cuda.set_device(DEVICE_ID)
+MODEL_NAME = f'bart-base_epoch_{NUM_EPOCH}_bsz_{BATCH_SIZE}_small_utterance'
+SAVE_PATH = os.path.join('model', f'{MODEL_NAME}.pt')
+log_file = open(os.path.join('model', f'{MODEL_NAME}.log'), 'w')
+
+print(f'Training for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
 
 '''
 load dataset
@@ -53,6 +57,11 @@ train_set, valid_set, test_set = TabularDataset.splits(path=os.path.join('data',
                                                        test='smaller_utterance_test.csv',
                                                        format='csv',
                                                        fields=fields)
+
+# # used for debugging
+# train_set.examples = train_set.examples[:10]
+# valid_set.examples = valid_set.examples[:10]
+
 # split dataset into batches
 train_iterator = BucketIterator(dataset=train_set, batch_size=BATCH_SIZE, shuffle=True)
 valid_iterator = BucketIterator(dataset=valid_set, batch_size=BATCH_SIZE, shuffle=True)
@@ -112,9 +121,9 @@ for epo in range(NUM_EPOCH):
         loss.backward()
         optimizer.step()
 
-        if idx % 1000 == 0:
-            print(f'epoch: {epo}, batch: {idx}, memory reserved {torch.cuda.memory_reserved(DEVICE_ID) / 1e9} GB')
-            print(f'epoch: {epo}, batch: {idx}, memory allocated {torch.cuda.memory_allocated(DEVICE_ID) / 1e9} GB')
+        # if idx % 1000 == 0:
+        #     print(f'epoch: {epo}, batch: {idx}, memory reserved {torch.cuda.memory_reserved(DEVICE_ID) / 1e9} GB')
+        #     print(f'epoch: {epo}, batch: {idx}, memory allocated {torch.cuda.memory_allocated(DEVICE_ID) / 1e9} GB')
         idx += 1
 
         total_loss += float(loss)
@@ -122,6 +131,8 @@ for epo in range(NUM_EPOCH):
         train_iterator_with_progress.set_postfix({'Loss': loss.item()})
 
     print(f'Loss in epoch {epo}: {total_loss}')
+    log_file.write(f'Epoch:{epo} ')
+    log_file.write(f'Loss:{total_loss} ')
 
     # evaluation
     model.eval()
@@ -157,9 +168,12 @@ for epo in range(NUM_EPOCH):
 
         perplexity = perplexity_sum / batch_num
         print(f'Perplexity: {perplexity}')
+        log_file.write(f'Perplexity:{perplexity}\n')
 
 # save model
 torch.save(model.state_dict(), SAVE_PATH)
+# close log file
+log_file.close()
 
 # load model
 # model = BartForConditionalGeneration()

@@ -4,3 +4,5 @@
 __pycache__
 *.csv
 non_English_interviews.txt
+*.pt
+*.log
