@@ -1,22 +1,87 @@
+import argparse
 import os
 import datasets
 import numpy as np
 import torch
 from torchtext.data import TabularDataset, BucketIterator, RawField
+from tqdm import tqdm
 from transformers import BartForConditionalGeneration, BartTokenizer
+
+# setup args
+arg_parser = argparse.ArgumentParser()
+arg_parser.add_argument(
+    '--batch_size',
+    type=int,
+    default=3,
+    help=f'Specify evaluation batch size'
+)
+
+arg_parser.add_argument(
+    '-s', '--sampling',
+    action='store_true',
+    help=f'Whether to use sampling methods'
+)
+
+arg_parser.add_argument(
+    '--num_beams',
+    type=int,
+    default=1,
+    help=f'Beam search size, with 1 being greedy decoding'
+)
+
+arg_parser.add_argument(
+    '--temperature',
+    type=float,
+    default=1.,
+    help=f'Temperature for beam search'
+)
+
+arg_parser.add_argument(
+    '--top_k',
+    type=int,
+    default=50,
+    help=f'Top-k sampling'
+)
+
+arg_parser.add_argument(
+    '--top_p',
+    type=float,
+    default=1.,
+    help=f'Top-p nucleus sampling'
+)
+
+args = arg_parser.parse_args()
 
 os.chdir('../')
 
 '''
-hyper-parameter 
+hyper-parameter and generation specifications
 '''
 DEVICE_ID = 3  # adjust this to use an unoccupied GPU
-EVAL_BATCH_SIZE = 2
+EVAL_BATCH_SIZE = args.batch_size
 MODEL_NAME = f'bart-base_epoch_2_bsz_3_small_utterance'
-# sampling specifications
-TOP_P = 0.92
-TOP_K = 0
-NUM_RETURN_SENTENCES = 1
+
+# specifications
+r'''MAX_LEN = default value: max length of model input'''
+r'''MIN_LEN = default value: 10'''
+
+# beam search specification (using early stopping)
+use_beam = not args.sampling
+num_beams = args.num_beams  # 1 means greedy decoding (no beam search)
+temperature = args.temperature  # default: 1.
+
+# sampling-based method specification (change use_beam to False if use these methods)
+top_p = args.top_p  # default: 1.
+top_k = args.top_k  # default: 50
+
+# stick to 1 for now
+num_return_sentences = 1
+
+
+'''
+logging 
+'''
+log_file = open(os.path.join('model', f'{MODEL_NAME}.ev'), 'a+')
 
 '''
 load dataset
@@ -60,7 +125,7 @@ metric = datasets.load_metric('sacrebleu')
 with torch.no_grad():
     batch_num = 0
     perplexity_sum = 0
-    for batch in valid_iterator:
+    for batch in tqdm(valid_iterator):
         # FIXME for now, skip all invalid question-answer pairs (those having questions longer than 685)
         remove_idx = [i for i, q in enumerate(batch.q) if len(q) >= 685]
         batch_q = [q for i, q in enumerate(batch.q) if i not in remove_idx]
@@ -89,12 +154,25 @@ with torch.no_grad():
         perplexity_sum += np.exp(loss.item())
 
         # generation
-        model_res_ids = model.generate(input_ids,
-                                       do_sample=True,
-                                       max_length=model.config.max_position_embeddings,
-                                       top_p=TOP_P,
-                                       top_k=TOP_K,
-                                       num_return_sequences=NUM_RETURN_SENTENCES)
+        if use_beam:
+            model_res_ids = model.generate(
+                input_ids,
+                max_length=model.config.max_position_embeddings,
+                num_beams=num_beams,
+                temperature=temperature,
+                num_return_sequences=num_return_sentences,
+                early_stopping=True
+            )
+        else:
+            model_res_ids = model.generate(
+                input_ids,
+                do_sample=True,
+                max_length=model.config.max_position_embeddings,
+                top_p=top_p,
+                top_k=top_k,
+                num_return_sequences=num_return_sentences
+            )
+
         # add generated responses and gold responses for future BLEU computation
         predictions = [tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=False) for g in
                        model_res_ids]
@@ -102,14 +180,32 @@ with torch.no_grad():
         metric.add_batch(predictions=predictions, references=references)
 
         batch_num += 1
+        break
 
     # BLEU
     score = metric.compute()
     # ppl
     perplexity = perplexity_sum / batch_num
 
+    print('last batch: ')
+    print(f'Questions: {batch_q}')
+    print(f'Model predictions: {predictions}')
+    print(f'Gold responses: {references}')
+
     print(f'Perplexity: {perplexity}')
     print(f'BLEU: {round(score["score"], 1)} our of {round(100., 1)}')
+    # write results to file
+    log_file.write(f'eval_bsz:{EVAL_BATCH_SIZE} ')
+    log_file.write(f'use_beam_search:{use_beam} ')
+    if use_beam:
+        log_file.write(f'beam_size:{num_beams} ')
+        log_file.write(f'temperature:{temperature} ')
+    else:
+        log_file.write(f'p:{top_p} ')
+        log_file.write(f'k:{top_k} ')
+    log_file.write(f'perplexity:{round(perplexity, 2)} ')
+    log_file.write(f'BLEU:{round(score["score"], 1)}\n')
+    log_file.close()
 
 # # sample predictions which get full BLEU score
 # predictions = ["hello there general kenobi", "foo bar foobar"]

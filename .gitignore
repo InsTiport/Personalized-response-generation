@@ -6,3 +6,4 @@ __pycache__
 non_English_interviews.txt
 *.pt
 *.log
+*.ev
