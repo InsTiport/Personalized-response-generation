@@ -93,8 +93,8 @@ for epo in range(NUM_EPOCH):
         optimizer.step()
 
         if idx % 1000 == 0:
-            print(f'memory reserved {torch.cuda.memory_reserved(DEVICE_ID) / 1e9} GB')
-            print(f'memory allocated {torch.cuda.memory_allocated(DEVICE_ID) / 1e9} GB')
+            print(f'epoch: {epo}, batch: {idx}, memory reserved {torch.cuda.memory_reserved(DEVICE_ID) / 1e9} GB')
+            print(f'epoch: {epo}, batch: {idx}, memory allocated {torch.cuda.memory_allocated(DEVICE_ID) / 1e9} GB')
         idx += 1
 
         total_loss += float(loss)
