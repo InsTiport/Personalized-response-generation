@@ -1,6 +1,47 @@
 # Personalized response generation
+## New Quickstart
+Get smaller version of training data [here](https://drive.google.com/drive/folders/1QUlBhZmDHFXlbyOHA_ID5_kW8dej1x9I?usp=sharing). To use the data, download all `smaller_utterance_*.csv` to `data/csv`.
 
-## Quickstart
+To train BART-base, inside `training`, run:
+
+```python -W ignore test_training.py -e [epoch] -b [batch size] ```
+
+Arguments:
+
+`-e`: number of epochs, with default value 5
+
+`-b`: batch size, with default value 2
+
+To evaluate trained model, inside `training`, run:
+
+``python -W ignore test_eval.py ...```
+
+Running this script will compute perplexity and BLEU scores on the validation dataset. The evaluation result will be logged into a file with `.ev` extension under `model`. If you run this script multiple times, previous results won't be erased, but concatenated to that file at the end. This is useful for comparing evaluation results of different decoding schemes.
+
+There are many arguments for this script. Without any argument, this sciprt will use greedy decoding (equivalent with `num_beams = 1`).
+
+To use sampling based decoding with top-p probability 0.93, run:
+
+```python -W ignore test_eval.py -s --top_p 0.93 ```
+
+To use beam search with size 10, run:
+
+```python -W ignore test_eval.py --num_beams 10 ```
+
+Arguments:
+`--batch_size`: batch size used while performing evaluation, with default value 5
+
+`--num_beams`: beam search size, with default value 1
+
+`--temperature`: a hyperparameter for beam search, with default value 1.0
+
+`-s`: toggle to use sampling based methods instead of beam search
+
+`--top_k`: default value 50
+
+`--top_p`: default value 1.0
+
+## Old Quickstart
 Get indexed version of tokenized texts [here](https://drive.google.com/drive/folders/1EzdSebTBt30p6iVQvq_3v5CURFqvkn6U?usp=sharing).
 
 Alternatively, you can run the following commands to generate these files. Inside `processing`, run the following commands in order:
