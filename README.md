@@ -2,14 +2,16 @@
 
 ## Quickstart
 
-### Training BART-base
+### Training BART-base or seq2seq
 Get smaller version of training data [here](https://drive.google.com/drive/folders/1QUlBhZmDHFXlbyOHA_ID5_kW8dej1x9I?usp=sharing). To use the data, download all `smaller_utterance_*.csv` to `data/csv`.
 
-To train BART-base, inside `training`, run:
+For example, to train BART-base, inside `training`, run:
 
-```python -W ignore test_training.py -e [epoch] -b [batch size] ```
+```python -W ignore train_BART.py -e [epoch] -b [batch size] ```
 
-Arguments of `test_training.py`:
+Arguments of these scripts:
+
+`--gpu`: which gpu to use, with default value 0
 
 `-e`: number of epochs, with default value 5
 
@@ -20,7 +22,7 @@ Get the trained model [here](https://drive.google.com/drive/folders/12wZvtyhnTpj
 
 To evaluate this particular trained model, inside `training`, run:
 
-```python -W ignore test_eval.py ...```
+```python -W ignore eval_BART.py ...```
 
 Running this script will compute perplexity and BLEU scores on the validation dataset. The evaluation result will be logged into a file with `.ev` extension inside `model`. If you run this script multiple times, previous results won't be erased, but concatenated to that file instead. This is helpful for comparing results of different decoding schemes.
 
@@ -35,6 +37,8 @@ To use beam search with size 10, run:
 ```python -W ignore test_eval.py --num_beams 10 ```
 
 Arguments of `test_eval.py`:
+
+`--gpu`: which gpu to use, with default value 0
 
 `--batch_size`: batch size used while performing evaluation, with default value 5
 
