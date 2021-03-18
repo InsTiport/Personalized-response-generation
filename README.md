@@ -1,24 +1,30 @@
 # Personalized response generation
-## New Quickstart
+
+## Quickstart
+
+### Training BART-base
 Get smaller version of training data [here](https://drive.google.com/drive/folders/1QUlBhZmDHFXlbyOHA_ID5_kW8dej1x9I?usp=sharing). To use the data, download all `smaller_utterance_*.csv` to `data/csv`.
 
 To train BART-base, inside `training`, run:
 
 ```python -W ignore test_training.py -e [epoch] -b [batch size] ```
 
-Arguments:
+Arguments of `test_training.py`:
 
 `-e`: number of epochs, with default value 5
 
 `-b`: batch size, with default value 2
 
-To evaluate trained model, inside `training`, run:
+### Evaluating trained BART-base
+Get the trained model [here](https://drive.google.com/drive/folders/12wZvtyhnTpjQEqjKljWio8bQh4syt6io?usp=sharing). To use this model, download `bart-base_epoch_10_bsz_2_small_utterance.pt` to `model`.
+
+To evaluate this particular trained model, inside `training`, run:
 
 ```python -W ignore test_eval.py ...```
 
-Running this script will compute perplexity and BLEU scores on the validation dataset. The evaluation result will be logged into a file with `.ev` extension under `model`. If you run this script multiple times, previous results won't be erased, but concatenated to that file at the end. This is useful for comparing evaluation results of different decoding schemes.
+Running this script will compute perplexity and BLEU scores on the validation dataset. The evaluation result will be logged into a file with `.ev` extension inside `model`. If you run this script multiple times, previous results won't be erased, but concatenated to that file instead. This is helpful for comparing results of different decoding schemes.
 
-There are many arguments for this script. Without any argument, this sciprt will use greedy decoding (equivalent with `num_beams = 1`).
+There are many arguments for this script. Without any argument, this sciprt will use greedy decoding (equivalent to setting `--num_beams 1`).
 
 To use sampling based decoding with top-p probability 0.93, run:
 
@@ -28,7 +34,8 @@ To use beam search with size 10, run:
 
 ```python -W ignore test_eval.py --num_beams 10 ```
 
-Arguments:
+Arguments of `test_eval.py`:
+
 `--batch_size`: batch size used while performing evaluation, with default value 5
 
 `--num_beams`: beam search size, with default value 1
