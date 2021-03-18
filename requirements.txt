@@ -11,3 +11,4 @@ torchtext~=0.8.1
 transformers~=4.3.3
 datasets~=1.4.1
 sacrebleu~=1.5.1
+bert_score~=0.3.8

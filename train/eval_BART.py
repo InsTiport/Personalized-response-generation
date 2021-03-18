@@ -196,7 +196,7 @@ with torch.no_grad():
 
     # BLEU
     score_bleu = metric_bleu.compute()
-    score_bertscore = metric_bertscore.compute(lang='en')
+    score_bert_score = metric_bertscore.compute(lang='en')
     # ppl
     perplexity = perplexity_sum / batch_num
 
@@ -207,7 +207,7 @@ with torch.no_grad():
 
     print(f'Perplexity: {perplexity}')
     print(f'BLEU: {round(score_bleu["score"], 1)} out of {round(100., 1)}')
-    print(f'BertScore: {score_bertscore["score"]}')
+    print(f'BertScore: {torch.mean(torch.tensor(score_bert_score["f1"]))}')
     # write results to file
     log_file.write(f'eval_bsz:{EVAL_BATCH_SIZE} ')
     log_file.write(f'use_beam_search:{use_beam} ')
@@ -218,8 +218,8 @@ with torch.no_grad():
         log_file.write(f'p:{top_p} ')
         log_file.write(f'k:{top_k} ')
     log_file.write(f'perplexity:{round(perplexity, 2)} ')
-    log_file.write(f'BLEU:{round(score_bleu["score"], 1)}')
-    log_file.write(f'BertScore:{score_bertscore["score"]}\n')
+    log_file.write(f'BLEU:{round(score_bleu["score"], 1)} ')
+    log_file.write(f'BertScore:{torch.mean(torch.tensor(score_bert_score["f1"]))}\n')
     log_file.close()
 
 # # sample predictions which get full BLEU score
