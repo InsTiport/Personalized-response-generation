@@ -18,7 +18,7 @@ arg_parser.add_argument(
 arg_parser.add_argument(
     '-b', '--batch',
     type=int,
-    default=3,
+    default=2,
     help=f'Specify batch size'
 )
 args = arg_parser.parse_args()

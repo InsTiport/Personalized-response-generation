@@ -59,7 +59,7 @@ hyper-parameter and generation specifications
 '''
 DEVICE_ID = 3  # adjust this to use an unoccupied GPU
 EVAL_BATCH_SIZE = args.batch_size
-MODEL_NAME = f'bart-base_epoch_2_bsz_3_small_utterance'
+MODEL_NAME = f'bart-base_epoch_10_bsz_2_small_utterance'
 
 # specifications
 r'''MAX_LEN = default value: max length of model input'''
@@ -180,7 +180,6 @@ with torch.no_grad():
         metric.add_batch(predictions=predictions, references=references)
 
         batch_num += 1
-        break
 
     # BLEU
     score = metric.compute()
