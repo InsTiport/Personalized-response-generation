@@ -57,7 +57,7 @@ os.chdir('../')
 '''
 hyper-parameter and generation specifications
 '''
-DEVICE_ID = 3  # adjust this to use an unoccupied GPU
+DEVICE_ID = 0  # adjust this to use an unoccupied GPU
 EVAL_BATCH_SIZE = args.batch_size
 MODEL_NAME = f'bart-base_epoch_10_bsz_2_small_utterance'
 
@@ -95,7 +95,7 @@ train_set, valid_set, test_set = TabularDataset.splits(path=os.path.join('data',
                                                        train='smaller_utterance_train.csv',
                                                        validation='smaller_utterance_valid.csv',
                                                        test='smaller_utterance_test.csv',
-                                                       format='csv',
+                                                       format='csv',    
                                                        fields=fields)
 
 # split dataset into batches
@@ -113,7 +113,10 @@ if device == 'cuda':
 # load model
 SAVE_PATH = os.path.join('model', f'{MODEL_NAME}.pt')
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-base').to(device)
-model.load_state_dict(torch.load(SAVE_PATH))
+try:
+    model.load_state_dict(torch.load(SAVE_PATH))
+except RuntimeError:
+    model.load_state_dict(torch.load(SAVE_PATH, map_location='cuda:0'))
 model.eval()
 # load tokenizer
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
@@ -121,7 +124,8 @@ tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 '''
 compute BLEU and perplexity in validation set
 '''
-metric = datasets.load_metric('sacrebleu')
+metric_bleu = datasets.load_metric('sacrebleu')
+metric_bertscore = datasets.load_metric('bertscore')
 with torch.no_grad():
     batch_num = 0
     perplexity_sum = 0
@@ -177,12 +181,14 @@ with torch.no_grad():
         predictions = [tokenizer.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=False) for g in
                        model_res_ids]
         references = [[r] for r in batch_r]
-        metric.add_batch(predictions=predictions, references=references)
+        metric_bleu.add_batch(predictions=predictions, references=references)
+        metric_bertscore.add_batch(predictions=predictions, references=references)
 
         batch_num += 1
 
     # BLEU
-    score = metric.compute()
+    score_bleu = metric_bleu.compute()
+    score_bertscore = metric_bertscore.compute(lang='en')
     # ppl
     perplexity = perplexity_sum / batch_num
 
@@ -192,7 +198,8 @@ with torch.no_grad():
     print(f'Gold responses: {references}')
 
     print(f'Perplexity: {perplexity}')
-    print(f'BLEU: {round(score["score"], 1)} our of {round(100., 1)}')
+    print(f'BLEU: {round(score_bleu["score"], 1)} out of {round(100., 1)}')
+    print(f'BertScore: {score_bertscore["score"]}')
     # write results to file
     log_file.write(f'eval_bsz:{EVAL_BATCH_SIZE} ')
     log_file.write(f'use_beam_search:{use_beam} ')
@@ -203,7 +210,8 @@ with torch.no_grad():
         log_file.write(f'p:{top_p} ')
         log_file.write(f'k:{top_k} ')
     log_file.write(f'perplexity:{round(perplexity, 2)} ')
-    log_file.write(f'BLEU:{round(score["score"], 1)}\n')
+    log_file.write(f'BLEU:{round(score_bleu["score"], 1)}')
+    log_file.write(f'BertScore:{score_bertscore["score"]}\n')
     log_file.close()
 
 # # sample predictions which get full BLEU score
