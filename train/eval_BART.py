@@ -9,6 +9,14 @@ from transformers import BartForConditionalGeneration, BartTokenizer
 
 # setup args
 arg_parser = argparse.ArgumentParser()
+
+arg_parser.add_argument(
+    '--gpu',
+    type=int,
+    default=0,
+    help=f'Specify which gpu to use'
+)
+
 arg_parser.add_argument(
     '--batch_size',
     type=int,
@@ -57,7 +65,7 @@ os.chdir('../')
 '''
 hyper-parameter and generation specifications
 '''
-DEVICE_ID = 0  # adjust this to use an unoccupied GPU
+DEVICE_ID = args.gpu  # adjust this to use an unoccupied GPU
 EVAL_BATCH_SIZE = args.batch_size
 MODEL_NAME = f'bart-base_epoch_10_bsz_2_small_utterance'
 

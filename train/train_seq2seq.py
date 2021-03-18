@@ -196,6 +196,14 @@ class Seq2Seq(nn.Module):
 
 # setup args
 arg_parser = argparse.ArgumentParser()
+
+arg_parser.add_argument(
+    '--gpu',
+    type=int,
+    default=0,
+    help=f'Specify which gpu to use'
+)
+
 arg_parser.add_argument(
     '-e', '--epoch',
     type=int,
@@ -214,7 +222,7 @@ os.chdir('../')
 '''
 hyper-parameter 
 '''
-DEVICE_ID = 3  # adjust this to use an unoccupied GPU
+DEVICE_ID = args.gpu  # adjust this to use an unoccupied GPU
 BATCH_SIZE = args.batch
 NUM_EPOCH = args.epoch
 
