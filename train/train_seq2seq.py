@@ -113,7 +113,7 @@ class Decoder(nn.Module):
 
 
 class Seq2Seq(nn.Module):
-    def __init__(self, vocab_size=50265, embed_size=1024, hidden_size=1024, num_layers=4, dropout=0.1):
+    def __init__(self, vocab_size=50265, embed_size=1024, hidden_size=1024, num_layers=2, dropout=0.1):
         super(Seq2Seq, self).__init__()
 
         self.vocab_size = vocab_size
