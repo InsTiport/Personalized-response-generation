@@ -140,8 +140,8 @@ with torch.no_grad():
     for batch in tqdm(valid_iterator):
         # FIXME for now, skip all invalid question-answer pairs (those having questions longer than 685)
         remove_idx = [i for i, q in enumerate(batch.q) if len(q) >= 685]
-        batch_q = [q for i, q in enumerate(batch.q) if i not in remove_idx]
-        batch_r = [r for i, r in enumerate(batch.r) if i not in remove_idx]
+        batch_q = [q.replace('\u2011', '') for i, q in enumerate(batch.q) if i not in remove_idx]
+        batch_r = [r.replace('\u2011', '') for i, r in enumerate(batch.r) if i not in remove_idx]
         assert len(batch_q) == len(batch_r)
         if len(batch_q) == 0:
             continue

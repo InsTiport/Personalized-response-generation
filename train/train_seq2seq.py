@@ -255,9 +255,9 @@ train_set, valid_set, test_set = TabularDataset.splits(path=os.path.join('data',
                                                        format='csv',
                                                        fields=fields)
 
-# used for debugging
-train_set.examples = train_set.examples[:10]
-valid_set.examples = valid_set.examples[:10]
+# # used for debugging
+# train_set.examples = train_set.examples[:10]
+# valid_set.examples = valid_set.examples[:10]
 
 # split dataset into batches
 train_iterator = BucketIterator(dataset=train_set, batch_size=BATCH_SIZE, shuffle=True)
@@ -316,14 +316,14 @@ for epo in range(NUM_EPOCH):
 
         # prepare labels for cross entropy by removing the first time stamp (<s>)
         labels = target_ids[1:, :]  # shape: (target_len - 1, batch_size)
-        labels = labels.reshape(-1)  # shape: ((target_len - 1) * batch_size)
+        labels = labels.reshape(-1).to(device)  # shape: ((target_len - 1) * batch_size)
 
         # prepare model predicts for cross entropy by removing the last timestamp and merge first two axes
         outputs = outputs[:-1, ...]  # shape: (target_len - 1, batch_size, vocab_size)
-        outputs = outputs.reshape(-1, outputs.shape[-1])  # shape: ((target_len - 1) * batch_size, vocab_size)
+        outputs = outputs.reshape(-1, outputs.shape[-1]).to(device)  # shape: ((target_len - 1) * batch_size, vocab_size)
 
         # compute loss and perform a step
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss().to(device)
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
