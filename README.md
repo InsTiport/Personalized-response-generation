@@ -30,13 +30,13 @@ There are many arguments for this script. Without any argument, this sciprt will
 
 To use sampling based decoding with top-p probability 0.93, run:
 
-```python -W ignore test_eval.py -s --top_p 0.93 ```
+```python -W ignore eval_BART.py -s --top_p 0.93 ```
 
-To use beam search with size 10, run:
+To use beam search with size 10 and GPU 3, run:
 
-```python -W ignore test_eval.py --num_beams 10 ```
+```python -W ignore eval_BART.py --gpu 3 --num_beams 10 ```
 
-Arguments of `test_eval.py`:
+Arguments of `eval_BART.py`:
 
 `--gpu`: which gpu to use, with default value 0
 
