@@ -208,7 +208,7 @@ with torch.no_grad():
     for q, pred, gold in zip(batch_q[:EVAL_BATCH_SIZE // 2], predictions[:EVAL_BATCH_SIZE // 2], references[:EVAL_BATCH_SIZE // 2]):
         print(f'Question: {q}')
         print(f'Model prediction: {pred}')
-        print(f'Gold: {gold}')
+        print(f'Gold: {gold}\n')
         
     print(f'Perplexity: {perplexity}')
     print(f'BLEU: {round(score_bleu["score"], 1)} out of {round(100., 1)}')
