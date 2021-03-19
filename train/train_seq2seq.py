@@ -113,7 +113,7 @@ class Decoder(nn.Module):
 
 
 class Seq2Seq(nn.Module):
-    def __init__(self, vocab_size=50265, embed_size=1024, hidden_size=1024, num_layers=4, dropout=0.1):
+    def __init__(self, vocab_size=50265, embed_size=1024, hidden_size=1024, num_layers=2, dropout=0.1):
         super(Seq2Seq, self).__init__()
 
         self.vocab_size = vocab_size
@@ -255,9 +255,9 @@ train_set, valid_set, test_set = TabularDataset.splits(path=os.path.join('data',
                                                        format='csv',
                                                        fields=fields)
 
-# used for debugging
-train_set.examples = train_set.examples[:10]
-valid_set.examples = valid_set.examples[:10]
+# # used for debugging
+# train_set.examples = train_set.examples[:10]
+# valid_set.examples = valid_set.examples[:10]
 
 # split dataset into batches
 train_iterator = BucketIterator(dataset=train_set, batch_size=BATCH_SIZE, shuffle=True)
@@ -292,8 +292,8 @@ for epo in range(NUM_EPOCH):
     for batch in train_iterator_with_progress:
         # FIXME for now, skip all invalid question-answer pairs (those having questions longer than 685)
         remove_idx = [i for i, q in enumerate(batch.q) if len(q) >= 685]
-        batch_q = [q for i, q in enumerate(batch.q) if i not in remove_idx]
-        batch_r = [r for i, r in enumerate(batch.r) if i not in remove_idx]
+        batch_q = [q.replace('\u2011', '') for i, q in enumerate(batch.q) if i not in remove_idx]
+        batch_r = [r.replace('\u2011', '') for i, r in enumerate(batch.r) if i not in remove_idx]
         assert len(batch_q) == len(batch_r)
         if len(batch_q) == 0:
             continue
@@ -316,14 +316,14 @@ for epo in range(NUM_EPOCH):
 
         # prepare labels for cross entropy by removing the first time stamp (<s>)
         labels = target_ids[1:, :]  # shape: (target_len - 1, batch_size)
-        labels = labels.reshape(-1)  # shape: ((target_len - 1) * batch_size)
+        labels = labels.reshape(-1).to(device)  # shape: ((target_len - 1) * batch_size)
 
         # prepare model predicts for cross entropy by removing the last timestamp and merge first two axes
         outputs = outputs[:-1, ...]  # shape: (target_len - 1, batch_size, vocab_size)
-        outputs = outputs.reshape(-1, outputs.shape[-1])  # shape: ((target_len - 1) * batch_size, vocab_size)
+        outputs = outputs.reshape(-1, outputs.shape[-1]).to(device)  # shape: ((target_len - 1) * batch_size, vocab_size)
 
         # compute loss and perform a step
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss().to(device)
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()

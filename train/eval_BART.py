@@ -199,12 +199,17 @@ with torch.no_grad():
     score_bert_score = metric_bertscore.compute(lang='en')
     # ppl
     perplexity = perplexity_sum / batch_num
-
+   
+    # compare some predictions with gold responses
     print('last batch: ')
-    print(f'Questions: {batch_q}')
-    print(f'Model predictions: {predictions}')
-    print(f'Gold responses: {references}')
-
+    batch_q = [q.replace('\u2011', '') for q in batch_q]
+    predictions = [p.replace('\u2011', '') for p in predictions]
+    references = [r[0].replace('\u2011', '') for r in references]
+    for q, pred, gold in zip(batch_q[:EVAL_BATCH_SIZE // 2], predictions[:EVAL_BATCH_SIZE // 2], references[:EVAL_BATCH_SIZE // 2]):
+        print(f'Question: {q}')
+        print(f'Model prediction: {pred}')
+        print(f'Gold: {gold}\n')
+        
     print(f'Perplexity: {perplexity}')
     print(f'BLEU: {round(score_bleu["score"], 1)} out of {round(100., 1)}')
     print(f'BertScore: {torch.mean(torch.tensor(score_bert_score["f1"]))}')
