@@ -100,7 +100,7 @@ for user_file in os.scandir(os.path.join('data', 'user_corpus')):
 
             loss.backward()
             optimizer.step()
-    torch.save(model.state_dict(), os.path.join('model', 'user_lm', f'gpt2_lm_{user}'))
+    torch.save(model.state_dict(), os.path.join('model', 'user_lm', f'gpt2_lm_{user}.pt'))
 
     avg_train_loss = total_train_loss / len(train_dataloader)
     print("")
