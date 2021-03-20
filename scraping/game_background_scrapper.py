@@ -19,9 +19,11 @@ os.chdir('../')
 interview_count = 0
 player_count = 0
 games_list = set()
+player_names = set()
 for sport in sports_type:
     SPORT_FOLDER_PATH = os.path.join('data', sport)
     for player_folder in os.scandir(SPORT_FOLDER_PATH):
+        player_names.add(player_folder.name + '_' + sport)
         player_count += 1
         if os.path.isdir(player_folder):
             for interview_text in os.scandir(player_folder):
@@ -38,6 +40,38 @@ for game in games_list:
 print(f"{player_count} players")
 print(f"There are {len(games_list)} distinct games among {interview_count} interviews.")
 print(f"There are {len(game_types_list)} distinct game types in total")
+
+if not os.path.exists(os.path.join('scraping', 'player_search_result')):
+    S = requests.Session()
+    URL = "https://en.wikipedia.org/w/api.php"
+    PARAMS = {
+        "action": "query",
+        "format": "json",
+        "list": "search",
+        "srsearch": "", # query
+        "srlimit": 1 # max number of pages to return
+    }
+
+    count = 0
+    wiki_wiki = wikipediaapi.Wikipedia('en')
+    search_result = dict()
+    for name in player_names:
+        if 'football' in name:
+            PARAMS['srsearch'] = name
+            R = S.get(url=URL, params=PARAMS)
+            DATA = R.json()
+            result_list = DATA['query']['search']
+            if len(result_list) == 0:
+                print("no match for", name)
+            else:
+                wiki_page = wiki_wiki.page(result_list[0]['title'])
+                if name.split('_')[1] in wiki_page.summary and name.split('_')[0].split(',')[0] in wiki_page.summary:
+                    search_result[name] = result_list
+                    count += 1
+                    print(name + "       ====       " +  result_list[0]['title'])
+    print(f'{count} football players found')
+    file_output = open(os.path.join('scraping', 'player_search_result'), 'x')
+    json.dump(search_result, file_output)
 
 if not os.path.exists(os.path.join("scraping", "game_search_result")):
     # search pages on Wikipedia
