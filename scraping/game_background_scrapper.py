@@ -56,20 +56,19 @@ if not os.path.exists(os.path.join('scraping', 'player_search_result')):
     wiki_wiki = wikipediaapi.Wikipedia('en')
     search_result = dict()
     for name in player_names:
-        if 'football' in name:
-            PARAMS['srsearch'] = name
-            R = S.get(url=URL, params=PARAMS)
-            DATA = R.json()
-            result_list = DATA['query']['search']
-            if len(result_list) == 0:
-                print("no match for", name)
-            else:
-                wiki_page = wiki_wiki.page(result_list[0]['title'])
-                if name.split('_')[1] in wiki_page.summary and name.split('_')[0].split(',')[0] in wiki_page.summary:
-                    search_result[name] = result_list
-                    count += 1
-                    print(name + "       ====       " +  result_list[0]['title'])
-    print(f'{count} football players found')
+        PARAMS['srsearch'] = name
+        R = S.get(url=URL, params=PARAMS)
+        DATA = R.json()
+        result_list = DATA['query']['search']
+        if len(result_list) == 0:
+            print("no match for", name)
+        else:
+            wiki_page = wiki_wiki.page(result_list[0]['title'])
+            if name.split('_')[1] in wiki_page.summary and name.split('_')[0].split(',')[0] in wiki_page.summary:
+                search_result[name] = result_list
+                count += 1
+                print(name + "       ====       " +  result_list[0]['title'])
+    print(f'{count} out of {player_count} players found')
     file_output = open(os.path.join('scraping', 'player_search_result'), 'x')
     json.dump(search_result, file_output)
 
