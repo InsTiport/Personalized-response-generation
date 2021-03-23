@@ -153,6 +153,7 @@ for epo in range(NUM_EPOCH):
     with torch.no_grad():
         batch_num = 0
         perplexity_sum = 0
+        total_loss = 0
         for batch in valid_iterator:
             # FIXME for now, skip all invalid question-answer pairs (those having questions longer than 685)
             remove_idx = [i for i, q in enumerate(batch.q) if len(q) >= 685]
@@ -177,10 +178,10 @@ for epo in range(NUM_EPOCH):
 
             # loss
             loss = outputs.loss
-            perplexity_sum += np.exp(loss.item())
+            total_loss += loss.item()
             batch_num += 1
 
-        perplexity = perplexity_sum / batch_num
+        perplexity = np.exp(total_loss / batch_num)
         print(f'Perplexity: {perplexity}')
         log_file.write(f'Perplexity:{perplexity}\n')
 

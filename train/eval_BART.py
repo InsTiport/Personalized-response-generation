@@ -136,7 +136,7 @@ metric_bleu = datasets.load_metric('sacrebleu')
 metric_bertscore = datasets.load_metric('bertscore')
 with torch.no_grad():
     batch_num = 0
-    perplexity_sum = 0
+    total_loss = 0
     for batch in tqdm(valid_iterator):
         # FIXME for now, skip all invalid question-answer pairs (those having questions longer than 685)
         remove_idx = [i for i, q in enumerate(batch.q) if len(q) >= 685]
@@ -161,9 +161,7 @@ with torch.no_grad():
 
         # loss
         loss = outputs.loss
-
-        # record perplexity
-        perplexity_sum += np.exp(loss.item())
+        total_loss += loss.item()
 
         # generation
         if use_beam:
@@ -198,7 +196,7 @@ with torch.no_grad():
     score_bleu = metric_bleu.compute()
     score_bert_score = metric_bertscore.compute(lang='en')
     # ppl
-    perplexity = perplexity_sum / batch_num
+    perplexity = np.exp(total_loss / batch_num)
    
     # compare some predictions with gold responses
     print('last batch: ')

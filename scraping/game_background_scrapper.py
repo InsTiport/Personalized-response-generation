@@ -41,6 +41,63 @@ print(f"{player_count} players")
 print(f"There are {len(games_list)} distinct games among {interview_count} interviews.")
 print(f"There are {len(game_types_list)} distinct game types in total")
 
+
+if not os.path.exists(os.path.join("scraping", "game_search_result")):
+    # search pages on Wikipedia
+    S = requests.Session()
+    URL = "https://en.wikipedia.org/w/api.php"
+    PARAMS = {
+        "action": "query",
+        "format": "json",
+        "list": "search",
+        "srsearch": "", # query
+        "srlimit": 10 # max number of pages to return
+    }
+
+    search_result = dict()
+    for game_type in game_types_list:
+        PARAMS["srsearch"] = game_type
+        R = S.get(url=URL, params=PARAMS)
+        DATA = R.json()
+        result_list = DATA['query']['search']
+        if len(result_list) == 0:
+            print("no match for", game_type)
+        else:
+            search_result[game_type] = result_list
+    with open(os.path.join("scraping", "game_search_result"), "x") as file_output:
+        json.dump(search_result, file_output)
+
+
+if not os.path.exists(os.path.join("scraping", "section_search_result")):
+    # search pages on Wikipedia
+    S = requests.Session()
+    URL = "https://en.wikipedia.org/w/api.php"
+    PARAMS = {
+        "action": "query",
+        "format": "json",
+        "list": "search",
+        "srsearch": "", # query
+        "srlimit": 1 # max number of pages to return
+    }
+
+    search_result = dict()
+    for game_section in games_list:
+        if ':' in game_section:
+            PARAMS["srsearch"] = game_section
+            R = S.get(url=URL, params=PARAMS)
+            DATA = R.json()
+            result_list = DATA['query']['search']
+            if len(result_list) == 0:
+                print('no match for', game_section)
+            else:
+                search_result[game_section] = result_list
+                print(game_section + "    =======    " + result_list[0]['title'])
+    with open(os.path.join("scraping", "section_search_result"), "x") as file_output:
+        json.dump(search_result, file_output)
+
+
+sys.exit()
+
 if not os.path.exists(os.path.join('scraping', 'player_search_result')):
     S = requests.Session()
     URL = "https://en.wikipedia.org/w/api.php"
@@ -67,51 +124,10 @@ if not os.path.exists(os.path.join('scraping', 'player_search_result')):
             if name.split('_')[1] in wiki_page.summary and name.split('_')[0].split(',')[0] in wiki_page.summary:
                 search_result[name] = result_list
                 count += 1
-                print(name + "       ====       " +  result_list[0]['title'])
+                try:
+                    print(name + "       ====       " +  result_list[0]['title'])
+                except UnicodeEncodeError as e:
+                    print(e)
     print(f'{count} out of {player_count} players found')
     file_output = open(os.path.join('scraping', 'player_search_result'), 'x')
     json.dump(search_result, file_output)
-
-if not os.path.exists(os.path.join("scraping", "game_search_result")):
-    # search pages on Wikipedia
-    S = requests.Session()
-    URL = "https://en.wikipedia.org/w/api.php"
-    PARAMS = {
-        "action": "query",
-        "format": "json",
-        "list": "search",
-        "srsearch": "", # query
-        "srlimit": 10 # max number of pages to return
-    }
-
-    search_result = dict()
-    for game_type in game_types_list:
-        PARAMS["srsearch"] = game_type
-        R = S.get(url=URL, params=PARAMS)
-        DATA = R.json()
-        result_list = DATA['query']['search']
-        if len(result_list) == 0:
-            print("no match for", game_type)
-        else:
-            search_result[game_type] = result_list
-            # print(game_type + "       :::::       " +  result_list[0]['title'])
-    file_output = open(os.path.join("scraping", "game_search_result"), "x")
-    json.dump(search_result, file_output)
-else:
-    search_result = json.loads(open(os.path.join("scraping", "game_search_result")).readline())
-
-for sport in sports_type:
-    SPORT_FOLDER_PATH = os.path.join('data', sport)
-    for player_folder in os.scandir(SPORT_FOLDER_PATH):
-        if os.path.isdir(player_folder):
-            for file_ in os.scandir(player_folder):
-                if file_.name.isnumeric():
-                    context_file = open(os.path.join(os.path.dirname(file_), 'wiki_result_' + file_.name), 'w')
-                    file_in = open(file_)
-                    game_type = file_in.readline().strip().split(':')[0]
-                    if game_type in search_result:
-                        json.dump(search_result[game_type], context_file)
-                    context_file.close()
-                    file_in.close()
-                    
-print(f"There are {len(search_result)} game types that have linked wikipedia pages.")
