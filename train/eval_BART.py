@@ -134,12 +134,12 @@ tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 compute BLEU and perplexity in validation set
 '''
 metric_bleu = datasets.load_metric('sacrebleu')
-metric_bertscore = datasets.load_metric('bertscore')
+metric_BERTScore = datasets.load_metric('bertscore')
 with torch.no_grad():
     batch_num = 0
     total_loss = 0
-    sum_log = 0  # record sum of log probabilities
-    N = 0  # N
+    total_ppl = 0  # record sum of ppl
+    N = 0  # number of validation samples
 
     for batch in tqdm(valid_iterator):
         # FIXME for now, skip all invalid question-answer pairs (those having questions longer than 685)
@@ -172,10 +172,12 @@ with torch.no_grad():
         logits = log_softmax(logits, dim=-1)
         logits_flatten = logits.view(-1, model.config.vocab_size)  # shape: (bsz * seq_len, vocab_sz)
 
-        N += (target_ids >= 0).sum().item()  # number of predicts (excluding padding) in this batch
-        predicted_prob = logits_flatten[range(logits_flatten.shape[0]), target_ids.view(-1)]  # shape: (bsz * seq_len)
-        predicted_prob[target_ids.view(-1) < 0] = 0  # zero out paddings
-        sum_log += predicted_prob.sum()
+        N += len(batch_q)  # accumulate the number of validation samples from this batch
+        predicted_prob = logits_flatten[range(logits_flatten.shape[0]), target_ids.view(-1)].view(target_ids.shape)
+        predicted_prob[target_ids < 0] = 0  # zero out paddings, shape: (bsz, seq_len)
+        ppl = - predicted_prob.sum(dim=1) / (target_ids >= 0).sum(dim=1)
+        ppl = torch.exp(ppl)  # ppl for each individual sample in this batch
+        total_ppl += ppl  # accumulate total ppl
 
         # generation
         if use_beam:
@@ -202,16 +204,17 @@ with torch.no_grad():
                        model_res_ids]
         references = [[r] for r in batch_r]
         metric_bleu.add_batch(predictions=predictions, references=references)
-        metric_bertscore.add_batch(predictions=predictions, references=references)
+        metric_BERTScore.add_batch(predictions=predictions, references=references)
 
         batch_num += 1
 
     # BLEU
     score_bleu = metric_bleu.compute()
-    score_bert_score = metric_bertscore.compute(lang='en')
+    # BERTScore
+    score_bert_score = metric_BERTScore.compute(lang='en')
     # ppl
     perplexity = np.exp(total_loss / batch_num)
-    perplexity_2 = torch.exp(- (sum_log / N))
+    perplexity_2 = (total_ppl / N).item()
 
     # compare some predictions with gold responses
     print('last batch: ')
@@ -240,7 +243,7 @@ with torch.no_grad():
     log_file.write(f'perplexity:{round(perplexity, 2)} ')
     log_file.write(f'perplexity 2:{round(perplexity_2, 2)} ')
     log_file.write(f'BLEU:{round(score_bleu["score"], 1)} ')
-    log_file.write(f'BertScore:{torch.mean(torch.tensor(score_bert_score["f1"]))}\n')
+    log_file.write(f'BertScore:{torch.mean(torch.tensor(score_bert_score["f1"]))}\n')  # average F-1 BERTScore
     log_file.close()
 
 # # sample predictions which get full BLEU score
