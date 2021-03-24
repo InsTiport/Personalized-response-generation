@@ -177,7 +177,7 @@ with torch.no_grad():
         predicted_prob[target_ids < 0] = 0  # zero out paddings, shape: (bsz, seq_len)
         ppl = - predicted_prob.sum(dim=1) / (target_ids >= 0).sum(dim=1)
         ppl = torch.exp(ppl)  # ppl for each individual sample in this batch
-        total_ppl += ppl  # accumulate total ppl
+        total_ppl += ppl.sum()  # accumulate total ppl
 
         # generation
         if use_beam:
