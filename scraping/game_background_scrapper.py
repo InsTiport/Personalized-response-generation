@@ -119,32 +119,39 @@ count = 0
 wiki_wiki = wikipediaapi.Wikipedia('en')
 S = requests.Session()
 for name in player_names:
-    try:
-        URL = "https://en.wikipedia.org/w/api.php"
-        PARAMS = {
-            "action": "query",
-            "format": "json",
-            "list": "search",
-            "srsearch": name, # query
-            "srlimit": 1 # max number of pages to return
-        }
-        R = S.get(url=URL, params=PARAMS)
-        DATA = R.json()
-        result_list = DATA['query']['search']
-        if len(result_list) == 0:
-            print("no match for", name)
-        else:
-            wiki_page = wiki_wiki.page(result_list[0]['title'])
-            if name.split('_')[1] in wiki_page.summary and name.split('_')[0].split(',')[0] in wiki_page.summary:
-                player_search_result[name] = result_list
-                count += 1
-                try:
-                    print(name + "       ====       " +  result_list[0]['title'])
-                except Exception as e:
-                    print(e)
-    except Exception as e:
-        print(e)
-with open(os.path.join('scraping', 'player_search_result'), 'x') as file_output:
+    if name not in player_search_result:
+        try:
+            URL = "https://en.wikipedia.org/w/api.php"
+            PARAMS = {
+                "action": "query",
+                "format": "json",
+                "list": "search",
+                "srsearch": name, # query
+                "srlimit": 1 # max number of pages to return
+            }
+            R = S.get(url=URL, params=PARAMS)
+            time.sleep(2)
+            DATA = R.json()
+            result_list = DATA['query']['search']
+            if len(result_list) == 0:
+                print("no match for", name)
+            else:
+                wiki_page = wiki_wiki.page(result_list[0]['title'])
+                if name.split('_')[1] in wiki_page.summary and name.split('_')[0].split(',')[0] in wiki_page.summary:
+                    player_search_result[name] = result_list
+                    count += 1
+                    try:
+                        print(name + "       ====       " +  result_list[0]['title'])
+                    except Exception as e:
+                        print(e)
+                else:
+                    print("no match for", name)
+        except Exception as e:
+            print(e)
+            with open(os.path.join('scraping', 'player_search_result'), 'w') as file_output:
+                json.dump(player_search_result, file_output)
+
+with open(os.path.join('scraping', 'player_search_result'), 'w') as file_output:
     json.dump(player_search_result, file_output)
 
 print(f'{count} out of {player_count} players found')
