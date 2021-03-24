@@ -3,6 +3,8 @@ import json
 import wikipediaapi
 import requests
 import sys
+import time
+from googlesearch import search
 
 sys.path.insert(0, os.path.abspath('..'))
 from scraping.scraper import ID_LOOKUP
@@ -41,7 +43,7 @@ print(f"{player_count} players")
 print(f"There are {len(games_list)} distinct games among {interview_count} interviews.")
 print(f"There are {len(game_types_list)} distinct game types in total")
 
-
+# scrape wikipedia pages for general game types
 if not os.path.exists(os.path.join("scraping", "game_search_result")):
     # search pages on Wikipedia
     S = requests.Session()
@@ -67,53 +69,65 @@ if not os.path.exists(os.path.join("scraping", "game_search_result")):
     with open(os.path.join("scraping", "game_search_result"), "x") as file_output:
         json.dump(search_result, file_output)
 
+count = 0
+for game_section in games_list:
+    if ':' in game_section:
+        count += 1
+print(count)
+section_search_result = json.loads(open(os.path.join('scraping', 'section_search_result'), 'r').readline())
+print(len(section_search_result))
 
-if not os.path.exists(os.path.join("scraping", "section_search_result")):
-    # search pages on Wikipedia
-    S = requests.Session()
-    URL = "https://en.wikipedia.org/w/api.php"
-    PARAMS = {
-        "action": "query",
-        "format": "json",
-        "list": "search",
-        "srsearch": "", # query
-        "srlimit": 1 # max number of pages to return
-    }
+# scrape wikipedia pages for game sections
+# if not os.path.exists(os.path.join("scraping", "section_search_result")):
+#     section_search_result = dict()
+# else:
+#     section_search_result = json.loads(open(os.path.join('scraping', 'section_search_result'), 'r').readline())
+# for game_section in games_list:
+#     if ':' in game_section:
+#         if game_section not in section_search_result:
+#             try:
+#                 PARAMS = {
+#                     'key': 'AIzaSyAdwkEI2n6oemWHZ3SlaUA37UAaLb5E1ME',
+#                     'cx': '6008a5bef15315ee8',
+#                     'q': game_section,
+#                     'start': 1,
+#                     'num': 10,
+#                     'lr': 'lang_en'
+#                 }
+#                 R = requests.get('https://www.googleapis.com/customsearch/v1', params=PARAMS)
+#                 print(R)
+#                 content = json.loads(R.content)
+#                 url_list = list()
+#                 for i in range(len(content['items'])):
+#                     url_list.append(content['items'][i]['link'])
+#                 section_search_result[game_section] = url_list
+#                 print(game_section + "    ====    " + url_list[0])
+#                 time.sleep(2)
+#             except Exception as e:
+#                 print(e)
+# with open(os.path.join("scraping", "section_search_result"), "w") as file_output:
+#     json.dump(section_search_result, file_output)
 
-    search_result = dict()
-    for game_section in games_list:
-        if ':' in game_section:
-            PARAMS["srsearch"] = game_section
-            R = S.get(url=URL, params=PARAMS)
-            DATA = R.json()
-            result_list = DATA['query']['search']
-            if len(result_list) == 0:
-                print('no match for', game_section)
-            else:
-                search_result[game_section] = result_list
-                print(game_section + "    =======    " + result_list[0]['title'])
-    with open(os.path.join("scraping", "section_search_result"), "x") as file_output:
-        json.dump(search_result, file_output)
 
-
-sys.exit()
-
+# scrape player wikipedia
 if not os.path.exists(os.path.join('scraping', 'player_search_result')):
-    S = requests.Session()
-    URL = "https://en.wikipedia.org/w/api.php"
-    PARAMS = {
-        "action": "query",
-        "format": "json",
-        "list": "search",
-        "srsearch": "", # query
-        "srlimit": 1 # max number of pages to return
-    }
+    player_search_result = dict()
+else:
+    player_search_result = json.loads(open(os.path.join('scraping', 'player_search_result'), 'r').readline())
 
-    count = 0
-    wiki_wiki = wikipediaapi.Wikipedia('en')
-    search_result = dict()
-    for name in player_names:
-        PARAMS['srsearch'] = name
+count = 0
+wiki_wiki = wikipediaapi.Wikipedia('en')
+S = requests.Session()
+for name in player_names:
+    try:
+        URL = "https://en.wikipedia.org/w/api.php"
+        PARAMS = {
+            "action": "query",
+            "format": "json",
+            "list": "search",
+            "srsearch": name, # query
+            "srlimit": 1 # max number of pages to return
+        }
         R = S.get(url=URL, params=PARAMS)
         DATA = R.json()
         result_list = DATA['query']['search']
@@ -122,12 +136,15 @@ if not os.path.exists(os.path.join('scraping', 'player_search_result')):
         else:
             wiki_page = wiki_wiki.page(result_list[0]['title'])
             if name.split('_')[1] in wiki_page.summary and name.split('_')[0].split(',')[0] in wiki_page.summary:
-                search_result[name] = result_list
+                player_search_result[name] = result_list
                 count += 1
                 try:
                     print(name + "       ====       " +  result_list[0]['title'])
-                except UnicodeEncodeError as e:
+                except Exception as e:
                     print(e)
-    print(f'{count} out of {player_count} players found')
-    file_output = open(os.path.join('scraping', 'player_search_result'), 'x')
-    json.dump(search_result, file_output)
+    except Exception as e:
+        print(e)
+with open(os.path.join('scraping', 'player_search_result'), 'x') as file_output:
+    json.dump(player_search_result, file_output)
+
+print(f'{count} out of {player_count} players found')
