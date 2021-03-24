@@ -6,6 +6,7 @@ import torch
 from torchtext.data import TabularDataset, BucketIterator, RawField
 from tqdm import tqdm
 from transformers import BartForConditionalGeneration, BartTokenizer
+from torch.nn.functional import log_softmax
 
 # setup args
 arg_parser = argparse.ArgumentParser()
@@ -122,7 +123,7 @@ if device == 'cuda':
 SAVE_PATH = os.path.join('model', f'{MODEL_NAME}.pt')
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-base').to(device)
 try:
-    model.load_state_dict(torch.load(SAVE_PATH))
+    model.load_state_dict(torch.load(SAVE_PATH, map_location=device))
 except RuntimeError:
     model.load_state_dict(torch.load(SAVE_PATH, map_location='cuda:0'))
 model.eval()
@@ -137,6 +138,9 @@ metric_bertscore = datasets.load_metric('bertscore')
 with torch.no_grad():
     batch_num = 0
     total_loss = 0
+    sum_log = 0  # record sum of log probabilities
+    N = 0  # N
+
     for batch in tqdm(valid_iterator):
         # FIXME for now, skip all invalid question-answer pairs (those having questions longer than 685)
         remove_idx = [i for i, q in enumerate(batch.q) if len(q) >= 685]
@@ -161,7 +165,17 @@ with torch.no_grad():
 
         # loss
         loss = outputs.loss
-        total_loss += loss.item()
+        total_loss += float(loss)
+
+        # get logits and use it to calculate perplexity
+        logits = outputs.logits  # shape: (bsz, seq_len, vocab_sz)
+        logits = log_softmax(logits, dim=-1)
+        logits_flatten = logits.view(-1, model.config.vocab_size)  # shape: (bsz * seq_len, vocab_sz)
+
+        N += (target_ids >= 0).sum().item()  # number of predicts (excluding padding) in this batch
+        predicted_prob = logits_flatten[range(logits_flatten.shape[0]), target_ids.view(-1)]  # shape: (bsz * seq_len)
+        predicted_prob[target_ids.view(-1) < 0] = 0  # zero out paddings
+        sum_log += predicted_prob.sum()
 
         # generation
         if use_beam:
@@ -197,18 +211,21 @@ with torch.no_grad():
     score_bert_score = metric_bertscore.compute(lang='en')
     # ppl
     perplexity = np.exp(total_loss / batch_num)
-   
+    perplexity_2 = torch.exp(- (sum_log / N))
+
     # compare some predictions with gold responses
     print('last batch: ')
     batch_q = [q.replace('\u2011', '') for q in batch_q]
     predictions = [p.replace('\u2011', '') for p in predictions]
     references = [r[0].replace('\u2011', '') for r in references]
-    for q, pred, gold in zip(batch_q[:EVAL_BATCH_SIZE // 2], predictions[:EVAL_BATCH_SIZE // 2], references[:EVAL_BATCH_SIZE // 2]):
+    print_len = EVAL_BATCH_SIZE // 2  # print these number of predictions
+    for q, prediction, gold in zip(batch_q[:print_len], predictions[:print_len], references[:print_len]):
         print(f'Question: {q}')
-        print(f'Model prediction: {pred}')
+        print(f'Model prediction: {prediction}')
         print(f'Gold: {gold}\n')
         
     print(f'Perplexity: {perplexity}')
+    print(f'Perplexity 2: {perplexity_2}')
     print(f'BLEU: {round(score_bleu["score"], 1)} out of {round(100., 1)}')
     print(f'BertScore: {torch.mean(torch.tensor(score_bert_score["f1"]))}')
     # write results to file
@@ -221,6 +238,7 @@ with torch.no_grad():
         log_file.write(f'p:{top_p} ')
         log_file.write(f'k:{top_k} ')
     log_file.write(f'perplexity:{round(perplexity, 2)} ')
+    log_file.write(f'perplexity 2:{round(perplexity_2, 2)} ')
     log_file.write(f'BLEU:{round(score_bleu["score"], 1)} ')
     log_file.write(f'BertScore:{torch.mean(torch.tensor(score_bert_score["f1"]))}\n')
     log_file.close()
