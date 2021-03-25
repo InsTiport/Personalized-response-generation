@@ -138,6 +138,7 @@ metric_BERTScore = datasets.load_metric('bertscore')
 with torch.no_grad():
     batch_num = 0
     total_loss = 0
+    # used to perform macro-average ppl
     total_ppl = 0  # record sum of ppl
     N = 0  # number of validation samples
 
@@ -228,7 +229,7 @@ with torch.no_grad():
         print(f'Gold: {gold}\n')
         
     print(f'Perplexity: {perplexity}')
-    print(f'Perplexity 2: {perplexity_2}')
+    print(f'Perplexity (avg): {perplexity_2}')
     print(f'BLEU: {round(score_bleu["score"], 1)} out of {round(100., 1)}')
     print(f'BertScore: {torch.mean(torch.tensor(score_bert_score["f1"]))}')
     # write results to file
@@ -241,7 +242,7 @@ with torch.no_grad():
         log_file.write(f'p:{top_p} ')
         log_file.write(f'k:{top_k} ')
     log_file.write(f'perplexity:{round(perplexity, 2)} ')
-    log_file.write(f'perplexity 2:{round(perplexity_2, 2)} ')
+    log_file.write(f'perplexity_avg:{round(perplexity_2, 2)} ')
     log_file.write(f'BLEU:{round(score_bleu["score"], 1)} ')
     log_file.write(f'BertScore:{torch.mean(torch.tensor(score_bert_score["f1"]))}\n')  # average F-1 BERTScore
     log_file.close()

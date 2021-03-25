@@ -24,6 +24,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/train/train_BART_convai2.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
       </map>
     </option>
   </component>
