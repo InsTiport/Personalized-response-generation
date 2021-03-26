@@ -90,7 +90,7 @@ conv = {
     }
 }  # used to store one conversation at a time
 for line in training_data:
-    line = line.strip().resplace(' .', '.').replace(' ?', '?').replace(' !', '!').replace(' ,', ',').resplace(' ;', ';')
+    line = line.strip().replace(' .', '.').replace(' ?', '?').replace(' !', '!').replace(' ,', ',').resplace(' ;', ';')
     if line[:2] == '1 ':
         if len(conv['conv']['speaker_1']) > 0:
             training_dataset.append(conv)  # add finished conv to dataset
