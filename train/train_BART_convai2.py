@@ -3,11 +3,11 @@ from torch.nn.functional import log_softmax
 from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import AdamW
 import torch
-from torchtext.data import TabularDataset, BucketIterator, RawField
 import numpy as np
 import os
 import tqdm
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # setup args
 arg_parser = argparse.ArgumentParser()
@@ -175,6 +175,10 @@ optimizer_grouped_parameters = [
 ]
 optimizer = AdamW(optimizer_grouped_parameters, lr=1e-5)
 
+epochs = list(range(NUM_EPOCH))
+losses = []
+ppl_1 = []
+ppl_2 = []
 # training loop
 for epo in range(NUM_EPOCH):
     model.train()
@@ -211,6 +215,7 @@ for epo in range(NUM_EPOCH):
         idx += 1
 
         total_loss += float(loss)
+        losses.append(float(loss))
         train_iterator_with_progress.set_description(f'Epoch {epo}')
         train_iterator_with_progress.set_postfix({'Loss': loss.item()})
 
@@ -260,10 +265,28 @@ for epo in range(NUM_EPOCH):
 
         perplexity = np.exp(total_loss / batch_num)
         perplexity_2 = (total_ppl / N).item()
+        ppl_1.append(float(perplexity))
+        ppl_2.append(float(perplexity_2))
         print(f'Perplexity: {perplexity}')
         print(f'Perplexity (avg): {perplexity_2}')
         log_file.write(f'Perplexity:{perplexity}\n')
 
+# plot loss and ppl
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
+
+ax[0].plot(epochs, losses)
+ax[0].set_title('Loss', fontsize=20)
+ax[0].set_xlabel('Epoch', fontsize=15)
+ax[0].set_ylabel('Loss', fontsize=15)
+
+ax[1].plot(epochs, ppl_1, label='perplexity')
+ax[1].plot(epochs, ppl_2, label='average perplexity')
+ax[1].legend(loc="upper left")
+ax[1].set_title('Perplexity', fontsize=20)
+ax[1].set_xlabel('Epoch', fontsize=15)
+ax[1].set_ylabel('Perplexity', fontsize=15)
+
+fig.savefig(os.path.join('figures', f'ConvAI2 BART fine-tuning batch epoch {NUM_EPOCH} size{BATCH_SIZE}'))
 # save model
 torch.save(model.state_dict(), SAVE_PATH)
 # close log file
