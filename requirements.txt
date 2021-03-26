@@ -12,3 +12,4 @@ transformers~=4.3.3
 datasets~=1.4.1
 sacrebleu~=1.5.1
 bert_score~=0.3.8
+matplotlib~=3.3.4
