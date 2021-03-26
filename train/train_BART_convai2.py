@@ -1,4 +1,5 @@
 import argparse
+import random
 from torch.nn.functional import log_softmax
 from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import AdamW
@@ -185,6 +186,7 @@ for epo in range(NUM_EPOCH):
     total_loss = 0
 
     # training
+    random.shuffle(training_dataset)  # shuffle before training
     train_iterator_with_progress = tqdm.tqdm(training_dataset)
     idx = 0
     for batch in train_iterator_with_progress:
