@@ -217,11 +217,11 @@ for epo in range(NUM_EPOCH):
         idx += 1
 
         total_loss += float(loss)
-        losses.append(float(loss))
         train_iterator_with_progress.set_description(f'Epoch {epo}')
         train_iterator_with_progress.set_postfix({'Loss': loss.item()})
 
     print(f'Loss in epoch {epo}: {total_loss}')
+    losses.append(total_loss)
     log_file.write(f'Epoch:{epo} ')
     log_file.write(f'Loss:{total_loss} ')
 
