@@ -129,7 +129,7 @@ conv = {
     }
 }  # used to store one conversation at a time
 for line in validation_data:
-    line = line.strip()
+    line = line.strip().replace(' .', '.').replace(' ?', '?').replace(' !', '!').replace(' ,', ',').replace(' ;', ';')
     if line[:2] == '1 ':
         if len(conv['conv']['speaker_1']) > 0:
             validation_dataset.append(conv)  # add finished conv to dataset
