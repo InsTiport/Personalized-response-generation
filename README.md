@@ -100,5 +100,12 @@ Before running the following command, make sure you have already generated `*_ut
 
 ```python generate_indexed_csv.py```
 
+### Link game background with each episode of interview
+To link wikipedia pages for each episode of interview, run:
+
+`processing/link_game_background.py`. 
+
+This script requires `game_search_result` and `section_search_result` which are loacted in `data/`. This script will scrape and assign an index for each wikipedia page and then it appends two columns at the end of `*_episode.csv` indicating the index of the background wikipedia pages.
+
 ## Troubleshooting
 If you see a `ModuleNotFoundError` while running any script on command line, this is because local scripts are not added to `PYTHONPATH`. Please use an IDE which has the functionality of automatically adding content roots to `PYTHONPATH` to run that script.
