@@ -21,11 +21,11 @@ def main():
     sports_type = list(ID_LOOKUP.keys())
     sports_type = [dir_name for dir_name in sports_type if os.path.exists(os.path.join('data', dir_name))]
 
-    # keep track of the total number of utterances
-    total_utterances = 0
+    # keep track of the total number of question-answer pairs
+    total_qa_pairs = 0
 
     # initialize counter for interview episode
-    episode_id = 0
+    episode_id = 1
 
     # writer object
     os.makedirs(os.path.join('data', 'csv') + '/', exist_ok=True)
@@ -95,19 +95,19 @@ def main():
                     dataset_writer.write(f'4 [section_wiki]{(" " + str(section_wiki)) if section_wiki != -1 else ""}\n')
                     dataset_writer.write(f'5 [title] {title}\n')
                     dataset_writer.write(f'6 [date] {date}\n')
-                    interviewees, backgrounds, qa_pair = generate_utterance(sentences, interviewees, episode_id)
+                    interviewees, backgrounds, qa_pairs = generate_utterance(sentences, interviewees, episode_id)
                     dataset_writer.write(f'7 [participants] {"|".join(interviewees)}\n')
                     idx = 8
                     for bg in backgrounds:
                         dataset_writer.write(f'{idx} [background] {bg}\n')
                         idx += 1
-                    for qa in qa_pair:
+                    for qa in qa_pairs:
                         dataset_writer.write(f'{idx} [QA] Q: {qa[0]}\t{qa[1]}\n')
                         idx += 1
                     dataset_writer.write('\n')
 
                     # update counter
-                    total_utterances += 2 * len(qa_pair)
+                    total_qa_pairs += len(qa_pairs)
                     episode_id += 1
 
                     f.close()
@@ -118,8 +118,8 @@ def main():
                 f.write(interview.path + '\n')
             f.close()
 
-    print(f'Processed {episode_id + 1} interviews in total.')
-    print(f'Generated {total_utterances} utterances in total.')
+    print(f'Processed {episode_id} interviews in total.')
+    print(f'Generated {total_qa_pairs} question-answer pairs in total.')
 
 
 def generate_utterance(sentences, speakers, episode_id):
