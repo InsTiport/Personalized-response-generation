@@ -41,5 +41,8 @@ if len(downloaded) < len(title2index):
             wiki_file.writelines(wiki_page.text)
 
 def get_wiki_page(title):
-    wiki_index = title2index[title]
-    return wiki_index, open(os.path.join('data', 'wiki', str(wiki_index)), 'r').readlines()
+    if title not in title2index:
+        return -1, []
+    else:
+        wiki_index = title2index[title]
+        return wiki_index, open(os.path.join('data', 'wiki', str(wiki_index)), 'r').readlines()
