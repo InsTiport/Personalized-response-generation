@@ -12,7 +12,7 @@ sports_type = list(ID_LOOKUP.keys())
 os.chdir('../')
 os.makedirs(os.path.join('data', 'wiki'), exist_ok=True)
 
-wiki_page_index = 0 # correspond to the name of files in data/wiki
+wiki_page_index = 0  # correspond to the name of files in data/wiki
 wiki_wiki = wikipediaapi.Wikipedia('en')
 
 # link the wikipedia pages of general game types to each episode

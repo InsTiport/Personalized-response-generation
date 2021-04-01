@@ -59,27 +59,6 @@ print(f'Training for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE} on ConvAI2
 '''
 load dataset
 '''
-# # prepare fields (needed when loading dataset)
-# question = RawField()
-# response = RawField()
-# fields = {'question': ('q', question), 'response': ('r', response)}
-# # load dataset
-# train_set, valid_set, test_set = TabularDataset.splits(path=os.path.join('data', 'csv'),
-#                                                        train='smaller_utterance_train.csv',
-#                                                        validation='smaller_utterance_valid.csv',
-#                                                        test='smaller_utterance_test.csv',
-#                                                        format='csv',
-#                                                        fields=fields)
-#
-# # # used for debugging
-# # train_set.examples = train_set.examples[:10]
-# # valid_set.examples = valid_set.examples[:10]
-#
-# # split dataset into batches
-# train_iterator = BucketIterator(dataset=train_set, batch_size=BATCH_SIZE, shuffle=True)
-# valid_iterator = BucketIterator(dataset=valid_set, batch_size=BATCH_SIZE, shuffle=True)
-# test_iterator = BucketIterator(dataset=test_set, batch_size=BATCH_SIZE, shuffle=True)
-
 training_dataset = []
 training_data = open(os.path.join('data', 'convai2_fix_723', 'train_both_original_no_cands.txt'), 'r')
 conv = {
