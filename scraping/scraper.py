@@ -81,6 +81,7 @@ def main():
                 exclude.add(interview_url)
 
     # record urls that are not decoded correctly
+    print(f'There are {len(exclude)} urls excluded in total. See excluded_url.txt for details.')
     with open(os.path.join(sport_folder_path, 'excluded_url.txt'), 'w') as f:
         for excluded_url in exclude:
             f.write(excluded_url + '\n')

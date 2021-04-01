@@ -71,7 +71,7 @@ def _is_name(s):
     for i in range(len(s)):
         if s[i] in string.ascii_lowercase:
             lower_count += 1
-    if lower_count == 1:
+    if lower_count <= 2:
         return True
     else:
         return False

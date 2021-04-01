@@ -62,13 +62,17 @@ def get_interview_text(interview_url):
             for item in raw_interview_text:
                 '''
                  all actual texts are either directly below the td Tag or is a Tag with name 'b' or 'p'
+                 sometimes, texts are under strong Tags, especially for cricket
                 '''
                 # CASE 1: directly below td
                 if type(item) is NavigableString:
-                    interview_text += str(item)
+                    interview_text += ' ' + str(item)
                 # CASE 2: 'b' or 'p' Tag
                 elif type(item) is Tag and (item.name == 'b' or item.name == 'p' or item.name == 'br'):
-                    interview_text += item.text
+                    interview_text += ' ' + item.text
+                elif type(item) is Tag and item.name == 'strong':
+                    if item.text != 'FastScripts Transcript by ASAP Sports':
+                        interview_text += ' ' + item.text
 
     # check whether this interview has been processed correctly
     correct = True if (len(interview_text) > 100 and '<' not in interview_text) else False

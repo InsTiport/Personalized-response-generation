@@ -115,7 +115,7 @@ def main():
                 f.write(interview.path + '\n')
             f.close()
 
-    print(f'Processed {episode_id} interviews in total.')
+    print(f'Processed {episode_id - 1} interviews in total.')
     print(f'Generated {total_qa_pairs} question-answer pairs in total.')
 
 
