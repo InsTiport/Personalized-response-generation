@@ -1,7 +1,5 @@
 import spacy
-
-spacy.cli.download("en_core_web_sm")
-nlp = spacy.load("en_core_web_sm")
+import string
 
 
 def tokenize(raw_text):
@@ -9,6 +7,8 @@ def tokenize(raw_text):
     raw_text: raw text string
     tokens: a list of tokens of a tokenized sentence
     """
+    spacy.cli.download("en_core_web_sm")
+    nlp = spacy.load("en_core_web_sm")
 
     doc = nlp(raw_text)
     tokens = list()
@@ -61,3 +61,49 @@ def generate_indexed_sentences(tokens_list, word2idx):
         indexed_sentences.append(indexed_sentence)
 
     return indexed_sentences
+
+
+def _is_name(s):
+    if s.isupper():
+        return True
+
+    lower_count = 0
+    for i in range(len(s)):
+        if s[i] in string.ascii_lowercase:
+            lower_count += 1
+    if lower_count == 1:
+        return True
+    else:
+        return False
+
+
+def check_start_of_turn(s):
+    s = s.strip()
+
+    # Q. or A.
+    if s[:2] == 'Q.' or s[:2] == 'A.':
+        return [s[0], s[2:]]
+
+    # other cases have a semicolon present
+    if ':' not in s:
+        return False
+    semicolon_idx = s.index(':')
+    if not _is_name(s[:semicolon_idx]):
+        return False
+    return [s[:semicolon_idx], s[semicolon_idx + 1:]]
+
+
+def partial_match(name_to_match, names):
+    """
+
+    :rtype: int
+    """
+    name_to_match = name_to_match.lower()
+    names = [name.lower() for name in names]
+
+    for index, name in enumerate(names):
+        for part in name_to_match.split():
+            if part in name:
+                return index
+
+    return -1
