@@ -44,5 +44,17 @@ print('Finished downloading wiki.')
 
 
 def get_wiki_page(title_name):
-    index = title2index[title_name]
-    return index, open(os.path.join('data', 'wiki', str(index)), 'r').readlines()
+    if title_name not in title2index:
+        return -1, []
+    else:
+        index = title2index[title]
+        return index, open(os.path.join('data', 'wiki', str(index)), 'r').readlines()
+
+
+# this version only gets the index
+def get_wiki_index(title_name):
+    if title_name not in title2index:
+        return -1
+    else:
+        index = title2index[title]
+        return index
