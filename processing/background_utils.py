@@ -11,7 +11,7 @@ os.makedirs(os.path.join('data', 'wiki'), exist_ok=True)
 title2index = dict()
 game_search_results = json.loads(open(os.path.join("scraping", "game_search_result")).readline())
 section_search_results = json.loads(open(os.path.join("scraping", "section_search_result")).readline())
- 
+
 for title in game_search_results:
     title2index[title] = len(title2index)
 
@@ -25,10 +25,11 @@ for entry in os.scandir(os.path.join('data', 'wiki')):
     if os.path.isfile(entry):
         downloaded.add(entry.name)
 
+print('Downloading wiki...')
 if len(downloaded) < len(title2index):
     wiki_wiki = wikipediaapi.Wikipedia('en')
     for wiki_index in range(len(downloaded), len(title2index)):
-        print(wiki_index)
+        # print(wiki_index)
         if wiki_index < len(game_search_results):
             result = game_search_results[index2title[wiki_index]]
             wiki_page = wiki_wiki.page(result[0]['title'])
@@ -37,9 +38,11 @@ if len(downloaded) < len(title2index):
             title = unquote(result.split('/')[-1]).replace('_', ' ')
             wiki_page = wiki_wiki.page(title)
         with open(os.path.join('data', 'wiki', str(wiki_index)), 'w') as wiki_file:
-            print(wiki_page.text)
+            # print(wiki_page.text)
             wiki_file.writelines(wiki_page.text)
+print('Finished downloading wiki.')
 
-def get_wiki_page(title):
-    wiki_index = title2index[title]
-    return wiki_index, open(os.path.join('data', 'wiki', str(wiki_index)), 'r').readlines()
+
+def get_wiki_page(title_name):
+    index = title2index[title_name]
+    return index, open(os.path.join('data', 'wiki', str(index)), 'r').readlines()
