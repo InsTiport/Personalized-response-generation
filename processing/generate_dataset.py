@@ -14,9 +14,6 @@ def main():
     # sentence boundary detection
     seg = pysbd.Segmenter(language="en", clean=False)
 
-    # file system routine
-    os.chdir('../')
-
     # dynamically find all sport categories available
     sports_type = list(ID_LOOKUP.keys())
     sports_type = [dir_name for dir_name in sports_type if os.path.exists(os.path.join('data', dir_name))]
@@ -28,7 +25,6 @@ def main():
     episode_id = 1
 
     # writer object
-    os.makedirs(os.path.join('data', 'csv') + '/', exist_ok=True)
     dataset_writer = open(os.path.join('data', 'interview.txt'), 'w')
 
     '''
@@ -91,7 +87,7 @@ def main():
                     dataset_writer.write(f'2 [sport_type] {sport}\n')
                     game_wiki = get_wiki_index(title[:title.index(':')]) if ':' in title else get_wiki_index(title)
                     dataset_writer.write(f'3 [game_wiki]{(" " + str(game_wiki)) if game_wiki != -1 else ""}\n')
-                    section_wiki = get_wiki_index(section_wiki) if ':' in title else -1
+                    section_wiki = get_wiki_index(title) if ':' in title else -1
                     dataset_writer.write(f'4 [section_wiki]{(" " + str(section_wiki)) if section_wiki != -1 else ""}\n')
                     dataset_writer.write(f'5 [title] {title}\n')
                     dataset_writer.write(f'6 [date] {date}\n')
@@ -102,9 +98,10 @@ def main():
                         dataset_writer.write(f'{idx} [background] {bg}\n')
                         idx += 1
                     for qa in qa_pairs:
-                        dataset_writer.write(f'{idx} [QA] Q: {qa[0]}\t{qa[1]}\n')
+                        question, answers = qa[0], '\t'.join(qa[1:])  # for multiple responses, join them with tabs
+                        dataset_writer.write(f'{idx} [QA] {question}\t{answers}\n')
                         idx += 1
-                    dataset_writer.write('\n')
+                    dataset_writer.write('[SEP]\n')  # separator token between different interviews
 
                     # update counter
                     total_qa_pairs += len(qa_pairs)
@@ -140,7 +137,7 @@ def generate_utterance(sentences, speakers, episode_id):
     # one question-response pair
     qa_pair = {
         'q': '',
-        'a': ''
+        'a': []  # there may be multiple answers from different interviewees
     }
     # to store one background comment at a time (effective before the QA part starts)
     comment = ''
@@ -187,24 +184,24 @@ def generate_utterance(sentences, speakers, episode_id):
             if speaker in speakers:
                 current_speaker = speaker
 
-                qa_pair['a'] = speaker + ': ' + sentence
+                qa_pair['a'].append(speaker + ': ' + sentence)
 
             elif speaker == 'A':
                 current_speaker = previous_speaker
-                qa_pair['a'] = speaker + ': ' + sentence  # since this is an 'A', this must be a response
+                qa_pair['a'].append(speaker + ': ' + sentence)  # since this is an 'A', this must be a response
 
             # in case of interviewer, denote him/her by a special token
             elif speaker == 'Q':
                 current_speaker = '[Q]'
 
-                if qa_pair['a'] != '':  # since there is a response, this must be a new turn
+                if len(qa_pair['a']) > 0:  # since there is a response, this must be a new turn
                     # write previous qa pair to storage
-                    qas.append((qa_pair['q'], qa_pair['a']))
+                    qas.append((qa_pair['q'], *qa_pair['a']))
                     # clear storage
-                    qa_pair = qa_pair.fromkeys(qa_pair, '')
+                    qa_pair['q'], qa_pair['a'] = '', []
 
                 # update q
-                qa_pair['q'] = sentence
+                qa_pair['q'] = 'Q: ' + sentence
 
             # # in case of moderator, denote him/her by a special token
             # elif speaker == 'THE MODERATOR':
@@ -217,14 +214,14 @@ def generate_utterance(sentences, speakers, episode_id):
             elif partial_match(speaker, speakers) >= 0:
                 current_speaker = speakers[partial_match(speaker, speakers)]
 
-                qa_pair['a'] = current_speaker + ': ' + sentence
+                qa_pair['a'].append(current_speaker + ': ' + sentence)
 
             # there are cases when an interviewee is not present in the speakers list
             elif len(speaker) > 1:
                 speakers.append(speaker)
                 current_speaker = speaker
 
-                qa_pair['a'] = speaker + ': ' + sentence
+                qa_pair['a'].append(speaker + ': ' + sentence)
 
             # maybe there is a typo, just skip
             else:
@@ -235,14 +232,14 @@ def generate_utterance(sentences, speakers, episode_id):
             previous_speaker = temp
 
         else:  # indicates that this sentence is part of someone's speaking
-            if qa_pair['a'] != '':  # indicates that the interviewee is speaking
-                qa_pair['a'] += ' ' + sentence
+            if len(qa_pair['a']) > 0:  # indicates that the interviewee is speaking
+                qa_pair['a'][-1] += ' ' + sentence
             else:  # indicates that the interviewer is speaking
                 qa_pair['q'] += ' ' + sentence
 
     # write last qa pair to file if it exists
     if qa_pair['q'] != '' and qa_pair['a'] != '':
-        qas.append((qa_pair['q'], qa_pair['a']))
+        qas.append((qa_pair['q'], *qa_pair['a']))
 
     # the speakers list may have been updated, due to missing interviewee names
     return speakers, backgrounds, qas

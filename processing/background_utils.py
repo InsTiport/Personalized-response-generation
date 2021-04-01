@@ -2,8 +2,6 @@ import os
 import wikipediaapi
 from urllib.parse import unquote
 import json
-import sys
-import pandas
 
 os.chdir('../')
 os.makedirs(os.path.join('data', 'wiki'), exist_ok=True)
