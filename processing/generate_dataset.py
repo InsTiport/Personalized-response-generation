@@ -7,7 +7,7 @@ from langdetect import detect
 sys.path.insert(0, os.path.abspath('..'))
 from scraping.scraper import ID_LOOKUP
 from processing.utils import check_start_of_turn, partial_match
-from processing.background_utils import get_wiki_page
+from processing.background_utils import get_wiki_index
 
 
 def main():
@@ -89,9 +89,9 @@ def main():
                     '''
                     dataset_writer.write(f'1 [id] {episode_id}\n')
                     dataset_writer.write(f'2 [sport_type] {sport}\n')
-                    game_wiki = get_wiki_page(title[:title.index(':')]) if ':' in title else get_wiki_page(title)
+                    game_wiki = get_wiki_index(title[:title.index(':')]) if ':' in title else get_wiki_index(title)
                     dataset_writer.write(f'3 [game_wiki]{(" " + str(game_wiki)) if game_wiki != -1 else ""}\n')
-                    section_wiki = get_wiki_page(section_wiki) if ':' in title else -1
+                    section_wiki = get_wiki_index(section_wiki) if ':' in title else -1
                     dataset_writer.write(f'4 [section_wiki]{(" " + str(section_wiki)) if section_wiki != -1 else ""}\n')
                     dataset_writer.write(f'5 [title] {title}\n')
                     dataset_writer.write(f'6 [date] {date}\n')
