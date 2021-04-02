@@ -67,8 +67,8 @@ def main():
                         continue
 
                     # check whether this interview has been encountered before
-                    if interview_text[:100] not in already_seen:
-                        already_seen.add(interview_text[:100])
+                    if interview_text[:300] not in already_seen:
+                        already_seen.add(interview_text[:300])
                     else:
                         continue
 

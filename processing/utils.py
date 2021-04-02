@@ -71,7 +71,9 @@ def _is_name(s):
     for i in range(len(s)):
         if s[i] in string.ascii_lowercase:
             lower_count += 1
-    if lower_count <= 2:
+    if lower_count == 1:
+        return True
+    elif lower_count == 2 and 'de' in s:  # for AB de VILLIERS
         return True
     else:
         return False
