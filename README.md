@@ -51,7 +51,7 @@ If you want to generate `interview.txt` by yourself, inside `processing` folder,
 python generate_dataset.py
 ```
 
-This will generate `interview.txt` under `data`. While generating `interview.txt` from raw transcripts, this script checks whether a script is in English by using [langdetect](https://pypi.org/project/langdetect/) and writes down interviews that are not English into a file `non_English_interviews.txt` for each sport category under its respective folder `data/[sport_type]`.
+This will generate `interview.txt` under `data`. While generating `interview.txt` from raw transcripts, this script checks whether a script is in English by using [langdetect](https://pypi.org/project/langdetect/) and writes down interviews that are not English into a file `non_English_interviews.txt` for each sport category under its respective folder `data/[sport_type]`. Note that non-English interviews are prevalent among baseball, golf and soccer interviews.
 
 ### `interview_qa.tsv` and `interview_qa_*.tsv`'s
 `interview_qa.tsv` and its three train/dev/test splits (`interview_qa_train.tsv`, `interview_qa_dev.tsv` and `interview_qa_test.tsv`) are generated from `interview.txt`. Bascially, these files are tabulated versions of `interview.txt` and thus can be used more easily during training.
@@ -102,7 +102,7 @@ Get smaller version of training data [here](https://drive.google.com/drive/folde
 For example, to train BART-base, inside `training`, run:
 
 ```python
-python -W ignore train_BART.py -e [epoch] -b [batch size]
+python train_BART.py -e [epoch] -b [batch size]
 ```
 
 Arguments of these scripts:
@@ -119,7 +119,7 @@ Get the trained model [here](https://drive.google.com/drive/folders/12wZvtyhnTpj
 To evaluate this particular trained model, inside `training`, run:
 
 ```python
-python -W ignore eval_BART.py ...
+python eval_BART.py ...
 ```
 
 Running this script will compute perplexity and BLEU scores on the validation dataset. The evaluation result will be logged into a file with `.ev` extension inside `model`. If you run this script multiple times, previous results won't be erased, but concatenated to that file instead. This is helpful for comparing results of different decoding schemes.
@@ -150,30 +150,14 @@ Arguments of `eval_BART.py`:
 
 `--top_p`: default value 1.0
 
-## Old Quickstart
-Get indexed version of tokenized texts [here](https://drive.google.com/drive/folders/1EzdSebTBt30p6iVQvq_3v5CURFqvkn6U?usp=sharing).
-
-Alternatively, you can run the following commands to generate these files. Inside `processing`, run the following commands in order:
-
-```python generate_csv.py```
-
-```python generate_indexed_csv.py```
-
-This will generate all (`*_utterance_indexed.csv`) files to `data`.
-
-Note that some interview texts are non-English, and this phenomenon is especially prevalent among baseball, golf and soccer interviews. Right now, English language checking is performed while generating csv files (`generate_csv.py`), not when generating vocabularies. The current vocabulary size is 161,292.
-
 ## Scraping
 ### Web scraping
 All scraped interview transcripts are located in `data/[sport_name]` folder. You don't need to redo this step since all interviews have been scrpaed.
 
-To scrape interviews of other type of sports, inside `scraping` folder, run (use `-h` to see available sports):
+However, if you want to scrape interviews by yourself, inside `scraping` folder, run:
 
 ```python
-python scraper.py -s [sport_name]
+python scraper.py
 ```
 
-The scraper will also create an `excluded_url.txt` file in each `data/[sport_name]` folder. This file documents all urls that are excluded while processing because their contents are unable to decode properly for any reason.
-
-## Troubleshooting
-If you see a `ModuleNotFoundError` while running any script on command line, this is because local scripts are not added to `PYTHONPATH`. Please use an IDE which has the functionality of automatically adding content roots to `PYTHONPATH` to run that script.
+The scraper will also create an `excluded_url.txt` file in each `data/[sport_name]` folder. This file documents all urls that are excluded while scraping because their contents are unable to decode properly for any reason.
