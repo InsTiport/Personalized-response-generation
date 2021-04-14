@@ -6,6 +6,8 @@ import torch
 import numpy as np
 import os
 import tqdm
+import sys
+sys.path.insert(0, os.path.abspath('..'))
 from interview_dataset import InterviewDataset
 
 # setup args
@@ -191,7 +193,7 @@ for epo in range(NUM_EPOCH):
         print(f'Perplexity (avg): {perplexity_2}')
         log_file.write(f'Perplexity:{perplexity} ')
         log_file.write(f'Perplexity_avg:{perplexity_2}\n')
-        
+
 # save model
 torch.save(model.state_dict(), SAVE_PATH)
 # close log file
