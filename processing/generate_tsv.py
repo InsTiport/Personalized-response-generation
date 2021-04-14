@@ -1,12 +1,14 @@
 import os
+import numpy as np
 
 os.chdir('../')
 
+print('generating tsv file...')
 with open(os.path.join('data', 'interview.txt'), 'r') as r:
     dataset = r.read()
     dataset = [interview for interview in dataset.split('[SEP]') if len(interview) > 10]  # don't include last one (\n)
 
-    with open(os.path.join('data', 'csv', 'interview_qa.tsv'), 'w') as w:
+    with open(os.path.join('data', 'interview_qa.tsv'), 'w') as w:
         w.write('id\t')
         w.write('sport_type\t')
         w.write('game_wiki\t')
@@ -20,8 +22,9 @@ with open(os.path.join('data', 'interview.txt'), 'r') as r:
         w.write('response\n')
 
         for interview in dataset:
-            lines = interview.split('\n')[:-1]  # remove the last line which contains only \n
-            lines = [line.replace('End of FastScripts', '').strip() for line in lines if len(line) > 3]  # remove empty lines
+            lines = interview.split('\n')
+            # some lines may be empty due to splitting, remove those
+            lines = [line.replace('End of FastScripts', '').strip() for line in lines if len(line) > 3]
 
             interview_id = lines[0][lines[0].index('[id]') + len('[id] '):]
             sport_type = lines[1][lines[1].index('[sport_type]') + len('[sport_type] '):]
@@ -56,3 +59,19 @@ with open(os.path.join('data', 'interview.txt'), 'r') as r:
                     w.write(f'{respondent}\t')
                     w.write(f'{question}\t')
                     w.write(f'{response}\n')
+
+print('generating train, dev and test splits...')
+with open(os.path.join('data', 'interview_qa.tsv'), 'r') as r:
+    header = r.readline()
+    lines = r.read()
+    lines = [line for line in lines.split('\n') if len(line) > 3]
+
+    shuffle_indices = np.random.choice(len(lines), len(lines), replace=False)
+
+    idx = 0
+    for split, percentage in zip(['train', 'dev', 'test'], [0.98, 0.99, 1]):
+        with open(os.path.join('data', f'interview_qa_{split}.tsv'), 'w') as w:
+            w.write(f'{header}')
+            while idx < percentage * len(lines):
+                w.write(f'{lines[shuffle_indices[idx]]}\n')
+                idx += 1
