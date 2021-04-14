@@ -4,82 +4,82 @@ Roger Bailey
 Steve Holman
 Andrea Toso
 START_OF_INTERVIEW_TEXT
-
-
-
-
-
-
+ 
+ 
+  
+ 
+  
+  
 
 
   
 
 
-  THE MODERATOR:   Steve Holman, it's always a pleasure to have you back at Indianapolis Motor Speedway.   We feel there are traditions at this racetrack, the bricks, the milk, all the things that go with it.   One of the things is the Louis Schwitzer Award.   
-STEVE HOLMAN:   First of all, I want to mention a couple of numbers.   This is our 48th Annual Louis Schwitzer Award presented by SAE Indiana section and sponsored by Borg-Warner.   
-Next year, our 49th, we expect to have a new trophy.   This year is our last year, all full on this particular trophy.   Then in 2016, our 50th anniversary will coincide with the 100th running of the Indy 500 and the 75thth anniversary of the Borg-Warner Trophy.   
-On our committee we have a first-year member in John Norton from Borg-Warner, second-year member Clay Dunbar, I think it's the third year for Will Phillips from IndyCar, then Larry Moore.   Jim Bailey from Borg-Warner who made the best career move this past year in retiring a month or two ago.   Rick Capco (phonetic), those with 20 years or more on the committee, myself and Steve Widmer from Purdue, and Pat Wildeman (phonetic) is our senior member.   
-Now, about five interviews per year on average, and 20 years on the committee, that's over a hundred interviews.   Most of them are rather dull engineering discussions, quickly forgotten.   There are at least two that we're going to remember forever.   
-One was a couple years ago with Dr. Henry Bock and the Speedway Medical Center when we were talking about some safety issues.   He talked about head injuries.   That was a very powerful interview.   
-The other one was just a week ago over at the new Dallara facility.   They took us in a big room.   They turned out the lights.   It was like you were on another planet watching a spaceship take off.   It glowed.   It hummed.   It quivered.   When the sound hit you, it took off at 200 miles an hour.   
-As impressive as that was, that's not the reason it won the award for that racing simulator.   The real reason is the engineering investment, the years of engineering investment in hardware, software, component simulation, integration, testing and a team of up to a dozen engineers all led by Andrea Toso whose commitment to this project makes him the 2014 Louis Schwitzer Award winner.   Congratulations.   
-ANDREA TOSO:   Thank you.   I'm flattered.   I will keep my speech short so you have time for questions.   
-First of all, I want to remember Louis Schwitzer.   He was an engineer and was the first winner here at the Speedway.   It was a five-mile race, I think.   So I'm proud to be in his group.   
-Second, I think I belong to the Speedway.   I really like.   I'm lucky.   I happen to meet the teams and drivers.   I really belong to this place.   So it's an honor for me to be a part of this tradition.   
-Third, I'm not alone.   I have a great group of engineers, Maroney, Vincent, Stefano, Alex, Mareno, Sam, Owen, Kim.   There are many others in Italy.   They made it.   I'm just the front man.   They're really behind the simulator.   
-The simulator I would say is not just a great tool for drivers as you may imagine, but is a great tool for engineers.   Quite rarely engineers get an opportunity to learn on the job.   The simulator gives them such an opportunity.   
-That means it stimulates ideas, fresh, out-of-the-box thinking.   The limit is really the fantasy.   We could try things that would be dangerous.   We could try turbo power, lag, tires, evaluate tactics that don't exist yet.   We did a lot of work on the road course layout.   Then the IMS people start the construction after.   
-I was telling it was a dream.   I don't know if it's practical or not.   But hopefully I will like to name the simulator after Louis Schwitzer, the engineer.   
-So time for your questions and hopefully I can answer.   
-THE MODERATOR:   Jim Bailey, a couple comments from you.   
-JIM BAILEY:   Louis Schwitzer's driving achievements over a hundred years ago are well-known.   Then he spent the rest of his life in engineering, not only in business but in philanthropy and also through the SAE section, a founding member, over four decades on the Speedway technical committee for racing.   He was an engineer first and foremost.   
-I think that's a lot about what the award is about.   It's a lot about what we've seen with Andrea and his good folks at Dallara.   They've made a statement with this tool, with the engineering.   It's created a great chassis already here at the 500.   I think you've made a statement that you're here for the next 100 years.   Congratulations, Andrea.   On behalf of Borg-Warner engineers, to the engineer, congratulations on the Louis Schwitzer Award.   Tremendous job.   
-ANDREA TOSO:   Thank you.   
-THE MODERATOR:   Questions.   
-
-Q.   Andrea, you mentioned that it's a tool, the simulator.   It's great for the Speedway, IndyCar, et cetera.   I see a more important aspect.   In case you would be ever approached by a company, car manufacturer, outside the racing world, automobile club, to teach young drivers safer driving, is there a possibility you can teach a simulator such as that?   
-ANDREA TOSO:   Yes.   There are nice ideas in the air already.   With Stefano we're talking about involving the police, for example, to train them in chasing the bad guys in a harsh environment when it's raining.   Yes, it's possible.   
-Data would be got with a laser scan.   They could reproduce the road, the city blocks.   Yes, it's possible.   You could train, yes.   
-
-Q.   How did this help the engineering group as well as the drivers?   
-ANDREA TOSO:   That correlates well to the SAE, Society of Automotive Engineers.   When you go to the track, you try a few things, tire pressure, et cetera.   The consequences of your decisions could be bad for the driver.   Say you're young, you don't know that you don't know, and you make mistakes.   The driver goes into the wall.   
-With the simulator, the young driver could try all kind of adjustments and learn from the mistakes without the penalty of the bad consequences for the driver.   
-It's rare nowadays to have such a tool.   There is no time to make mistakes nowadays.   Everybody wants from us the perfect job at the right time with a low cost, so there is no time to go long.   Simulator is a tool not to go wrong.   
-
-Q.   A simulator cannot simulate weather conditions.   
-ANDREA TOSO:   Yes.   We can simulate rain, night, wind, oil on track, yes.   
-STEVE HOLMAN:   The technical details of the simulation here is amazing.   I can't remember all the things.   Incredible number of components and conditions that can be simulated on this apparatus.   Another engineering advantage for Dallara, in the development of a new car, but not just IndyCars, you can do a new modeling of a new design, put it on the track, make sure it's got the right characteristics at a far lower cost before you could do a prototype and put it on the track.   
-That's a big advantage for the team, cost savings.   You can take a car and a driver to a consistent set of conditions and have it tested and not have all the expensive costs of going to a track.   I think the numbers we were looking at were 20% or one-fifth.   
-ANDREA TOSO:   I give you a couple examples.   Say next year will be aero kit.   Say GM and Honda will come with more downforce.   Which would be the consequences?   Tires have to be right.   So why not having Firestone work with Dallara and say, Come evaluate the effect of more downforce on the tire, the temperature, the wear, and eventually decide on new tires well before next year.   
-Another example, maybe you've heard the IndyCar announce the steering, because the drivers get hurt in a wheel-to-wheel contact.   IndyCar said, Okay, please develop a steering damper.   We modeled the steering damper.   We asked the drivers to go over the bumps.   We measured the steering speed.   We got track data from crashes, so we have the steering speed in those crash situations.   
-We designed characteristics so it would be okay for normal driving that would dampen the speed when heading to the wall.   We did it all on the simulator.   
-Then we made the prototype.   We got another driver come to the simulator, test the prototype, and now we gave the prototype to IndyCar.   
-I'm pretty sure when they put in the car will be right.   
-THE MODERATOR:   The key thing here is when people think about a simulator now, they think it's a higher tech version of something they put four quarters in at a game place and try to understand what it's like to race around a road course.   You're testing and can test various components of the racecar, the tires, the springs, everything, and you can do some of this by dialing up a particular racecourse.   Instead of going across the country, unloading a car, doing this, you can do a lot of this with the simulator that you developed.   
-ANDREA TOSO:   I give you another example.   There's talk about a race in Brazil next year.   There is a track, but probably the track needs some rework.   We got a visit from those guys and the idea is, let's have drivers run on a modified track.   Let's make sure they like the overtake zones, flow, so on and so on.   Once they are happy, people would start the construction work with a good enough confidence that the track will be okay.   
-But imagine going wrong, spending big money, and having all drivers and teams fly to Brazil, because they have no time to test before, just to realize that it's wrong.   
-So we can model a track that does not exist yet.   
-
-Q.   In principle, can you rent out your simulator like a wind tunnel, like a NASCAR team?   
-ANDREA TOSO:   Yes.   NASCAR is really complicated.   
-
-Q.   (No microphone.   
-ANDREA TOSO:   That scares me.   This car is really complicated.   
-We had an example in Italy.   We have a similar unit where a manufacturer wanted to test a road car.   They didn't want to share the vehicle model.   That's understandable.   So they came with their own PC.   They plugged into the network of our PC.   They were moving the simulator, their own driver.   They walked away.   
-So, yes.   
-THE MODERATOR:   I just have to say in terms of where this can put racing, the safety aspects, the technology aspects, the improvement aspects, this is just phenomenal stuff.   I think we owe you all a great thanks and gratitude.   This is clearly an award well-deserved.   Congratulations.   
-ANDREA TOSO:   I would say that Dallara is committed to Indiana, Indianapolis.   It's a major investment for us.   We feel at home here.   The simulator is an example of our commitment and it will be good to generate high-quality jobs, to promote the engineering as it has been in the early part of the last century.   Indianapolis was the home to the automotive industry, and it could come back.   
-
-Q.   Does the award have to be connected to Indianapolis and the 500 or is there also thinking of giving the award one day to a company not involved even in American racing?   
-STEVE HOLMAN:   We do have a set of criteria.   One of them is that the new engineering development does have a connection to the Indianapolis 500.   In this case we certainly do with the commitment by Andrea to set up the new Dallara DW12 chassis on the simulator.   
-If you look back over the years of our 48 previous winners, every one of them certainly did have a car or device that did appear here at the Indianapolis 500.   
-ANDREA TOSO:   At the end I would like all the guys from Dallara come onto the stage.   
-THE MODERATOR:   Thank you.   
-
-
-
-
-
-
+  THE MODERATOR:   Steve Holman, it's always a pleasure to have you back at Indianapolis Motor Speedway.   We feel there are traditions at this racetrack, the bricks, the milk, all the things that go with it.   One of the things is the Louis Schwitzer Award.     
+STEVE HOLMAN:   First of all, I want to mention a couple of numbers.   This is our 48th Annual Louis Schwitzer Award presented by SAE Indiana section and sponsored by Borg-Warner.     
+Next year, our 49th, we expect to have a new trophy.   This year is our last year, all full on this particular trophy.   Then in 2016, our 50th anniversary will coincide with the 100th running of the Indy 500 and the 75thth anniversary of the Borg-Warner Trophy.     
+On our committee we have a first-year member in John Norton from Borg-Warner, second-year member Clay Dunbar, I think it's the third year for Will Phillips from IndyCar, then Larry Moore.   Jim Bailey from Borg-Warner who made the best career move this past year in retiring a month or two ago.   Rick Capco (phonetic), those with 20 years or more on the committee, myself and Steve Widmer from Purdue, and Pat Wildeman (phonetic) is our senior member.     
+Now, about five interviews per year on average, and 20 years on the committee, that's over a hundred interviews.   Most of them are rather dull engineering discussions, quickly forgotten.   There are at least two that we're going to remember forever.     
+One was a couple years ago with Dr. Henry Bock and the Speedway Medical Center when we were talking about some safety issues.   He talked about head injuries.   That was a very powerful interview.     
+The other one was just a week ago over at the new Dallara facility.   They took us in a big room.   They turned out the lights.   It was like you were on another planet watching a spaceship take off.   It glowed.   It hummed.   It quivered.   When the sound hit you, it took off at 200 miles an hour.     
+As impressive as that was, that's not the reason it won the award for that racing simulator.   The real reason is the engineering investment, the years of engineering investment in hardware, software, component simulation, integration, testing and a team of up to a dozen engineers all led by Andrea Toso whose commitment to this project makes him the 2014 Louis Schwitzer Award winner.   Congratulations.     
+ANDREA TOSO:   Thank you.   I'm flattered.   I will keep my speech short so you have time for questions.     
+First of all, I want to remember Louis Schwitzer.   He was an engineer and was the first winner here at the Speedway.   It was a five-mile race, I think.   So I'm proud to be in his group.     
+Second, I think I belong to the Speedway.   I really like.   I'm lucky.   I happen to meet the teams and drivers.   I really belong to this place.   So it's an honor for me to be a part of this tradition.     
+Third, I'm not alone.   I have a great group of engineers, Maroney, Vincent, Stefano, Alex, Mareno, Sam, Owen, Kim.   There are many others in Italy.   They made it.   I'm just the front man.   They're really behind the simulator.     
+The simulator I would say is not just a great tool for drivers as you may imagine, but is a great tool for engineers.   Quite rarely engineers get an opportunity to learn on the job.   The simulator gives them such an opportunity.     
+That means it stimulates ideas, fresh, out-of-the-box thinking.   The limit is really the fantasy.   We could try things that would be dangerous.   We could try turbo power, lag, tires, evaluate tactics that don't exist yet.   We did a lot of work on the road course layout.   Then the IMS people start the construction after.     
+I was telling it was a dream.   I don't know if it's practical or not.   But hopefully I will like to name the simulator after Louis Schwitzer, the engineer.     
+So time for your questions and hopefully I can answer.     
+THE MODERATOR:   Jim Bailey, a couple comments from you.     
+JIM BAILEY:   Louis Schwitzer's driving achievements over a hundred years ago are well-known.   Then he spent the rest of his life in engineering, not only in business but in philanthropy and also through the SAE section, a founding member, over four decades on the Speedway technical committee for racing.   He was an engineer first and foremost.     
+I think that's a lot about what the award is about.   It's a lot about what we've seen with Andrea and his good folks at Dallara.   They've made a statement with this tool, with the engineering.   It's created a great chassis already here at the 500.   I think you've made a statement that you're here for the next 100 years.   Congratulations, Andrea.   On behalf of Borg-Warner engineers, to the engineer, congratulations on the Louis Schwitzer Award.   Tremendous job.     
+ANDREA TOSO:   Thank you.     
+THE MODERATOR:   Questions.     
+   
+ Q.   Andrea, you mentioned that it's a tool, the simulator.   It's great for the Speedway, IndyCar, et cetera.   I see a more important aspect.   In case you would be ever approached by a company, car manufacturer, outside the racing world, automobile club, to teach young drivers safer driving, is there a possibility you can teach a simulator such as that?     
+ANDREA TOSO:   Yes.   There are nice ideas in the air already.   With Stefano we're talking about involving the police, for example, to train them in chasing the bad guys in a harsh environment when it's raining.   Yes, it's possible.     
+Data would be got with a laser scan.   They could reproduce the road, the city blocks.   Yes, it's possible.   You could train, yes.     
+   
+ Q.   How did this help the engineering group as well as the drivers?     
+ANDREA TOSO:   That correlates well to the SAE, Society of Automotive Engineers.   When you go to the track, you try a few things, tire pressure, et cetera.   The consequences of your decisions could be bad for the driver.   Say you're young, you don't know that you don't know, and you make mistakes.   The driver goes into the wall.     
+With the simulator, the young driver could try all kind of adjustments and learn from the mistakes without the penalty of the bad consequences for the driver.     
+It's rare nowadays to have such a tool.   There is no time to make mistakes nowadays.   Everybody wants from us the perfect job at the right time with a low cost, so there is no time to go long.   Simulator is a tool not to go wrong.     
+   
+ Q.   A simulator cannot simulate weather conditions.     
+ANDREA TOSO:   Yes.   We can simulate rain, night, wind, oil on track, yes.     
+STEVE HOLMAN:   The technical details of the simulation here is amazing.   I can't remember all the things.   Incredible number of components and conditions that can be simulated on this apparatus.   Another engineering advantage for Dallara, in the development of a new car, but not just IndyCars, you can do a new modeling of a new design, put it on the track, make sure it's got the right characteristics at a far lower cost before you could do a prototype and put it on the track.     
+That's a big advantage for the team, cost savings.   You can take a car and a driver to a consistent set of conditions and have it tested and not have all the expensive costs of going to a track.   I think the numbers we were looking at were 20% or one-fifth.     
+ANDREA TOSO:   I give you a couple examples.   Say next year will be aero kit.   Say GM and Honda will come with more downforce.   Which would be the consequences?   Tires have to be right.   So why not having Firestone work with Dallara and say, Come evaluate the effect of more downforce on the tire, the temperature, the wear, and eventually decide on new tires well before next year.     
+Another example, maybe you've heard the IndyCar announce the steering, because the drivers get hurt in a wheel-to-wheel contact.   IndyCar said, Okay, please develop a steering damper.   We modeled the steering damper.   We asked the drivers to go over the bumps.   We measured the steering speed.   We got track data from crashes, so we have the steering speed in those crash situations.     
+We designed characteristics so it would be okay for normal driving that would dampen the speed when heading to the wall.   We did it all on the simulator.     
+Then we made the prototype.   We got another driver come to the simulator, test the prototype, and now we gave the prototype to IndyCar.     
+I'm pretty sure when they put in the car will be right.     
+THE MODERATOR:   The key thing here is when people think about a simulator now, they think it's a higher tech version of something they put four quarters in at a game place and try to understand what it's like to race around a road course.   You're testing and can test various components of the racecar, the tires, the springs, everything, and you can do some of this by dialing up a particular racecourse.   Instead of going across the country, unloading a car, doing this, you can do a lot of this with the simulator that you developed.     
+ANDREA TOSO:   I give you another example.   There's talk about a race in Brazil next year.   There is a track, but probably the track needs some rework.   We got a visit from those guys and the idea is, let's have drivers run on a modified track.   Let's make sure they like the overtake zones, flow, so on and so on.   Once they are happy, people would start the construction work with a good enough confidence that the track will be okay.     
+But imagine going wrong, spending big money, and having all drivers and teams fly to Brazil, because they have no time to test before, just to realize that it's wrong.     
+So we can model a track that does not exist yet.     
+   
+ Q.   In principle, can you rent out your simulator like a wind tunnel, like a NASCAR team?     
+ANDREA TOSO:   Yes.   NASCAR is really complicated.     
+   
+ Q.   (No microphone.     
+ANDREA TOSO:   That scares me.   This car is really complicated.     
+We had an example in Italy.   We have a similar unit where a manufacturer wanted to test a road car.   They didn't want to share the vehicle model.   That's understandable.   So they came with their own PC.   They plugged into the network of our PC.   They were moving the simulator, their own driver.   They walked away.     
+So, yes.     
+THE MODERATOR:   I just have to say in terms of where this can put racing, the safety aspects, the technology aspects, the improvement aspects, this is just phenomenal stuff.   I think we owe you all a great thanks and gratitude.   This is clearly an award well-deserved.   Congratulations.     
+ANDREA TOSO:   I would say that Dallara is committed to Indiana, Indianapolis.   It's a major investment for us.   We feel at home here.   The simulator is an example of our commitment and it will be good to generate high-quality jobs, to promote the engineering as it has been in the early part of the last century.   Indianapolis was the home to the automotive industry, and it could come back.     
+   
+ Q.   Does the award have to be connected to Indianapolis and the 500 or is there also thinking of giving the award one day to a company not involved even in American racing?     
+STEVE HOLMAN:   We do have a set of criteria.   One of them is that the new engineering development does have a connection to the Indianapolis 500.   In this case we certainly do with the commitment by Andrea to set up the new Dallara DW12 chassis on the simulator.     
+If you look back over the years of our 48 previous winners, every one of them certainly did have a car or device that did appear here at the Indianapolis 500.     
+ANDREA TOSO:   At the end I would like all the guys from Dallara come onto the stage.     
+THE MODERATOR:   Thank you.     
+   
+  
+  
+  
+  
+  
 
 END_OF_INTERVIEW_TEXT
