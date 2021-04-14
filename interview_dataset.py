@@ -11,12 +11,17 @@ def get_wiki(idx):
 
 
 class InterviewDataset(torch.utils.data.Dataset):
-    def __init__(self, use_wiki=False):
-        self.filename = os.path.join('data', 'interview_qa.tsv')
+    # data can be 'train', 'dev' or 'test'
+    def __init__(self, data='train', use_wiki=False):
+        self.filename = os.path.join('data', f'interview_qa_{data}.tsv')
         self.use_wiki = use_wiki
+        with open(self.filename, 'r') as r:
+            lines = r.read()
+            self.len = len([line for line in lines.split('\n') if len(line) > 3]) - 1
+        del lines
 
     def __len__(self):
-        return 1759312
+        return self.len
 
     def __getitem__(self, item):
         line = linecache.getline(self.filename, item + 2).strip().split('\t')
@@ -43,7 +48,9 @@ if __name__ == '__main__':
 
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True, num_workers=0)
 
-    batch = next(data_loader)
+    batch = next(iter(data_loader))
     print(batch)
+
+    print(f'Size of the dataset: {len(dataset)}')
 
     print(f'Time elapsed: {time.time() - start_time}')
