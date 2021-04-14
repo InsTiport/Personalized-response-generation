@@ -31,61 +31,63 @@ ID_LOOKUP = {
 
 
 def main():
-    # setup args
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument(
-        '-s', '--sport',
-        default='football',
-        choices=list(ID_LOOKUP.keys()),
-        help=f'Specify the sport type'
-    )
-    args = arg_parser.parse_args()
-
-    sport_type = args.sport
+    # # setup args
+    # arg_parser = argparse.ArgumentParser()
+    # arg_parser.add_argument(
+    #     '-s', '--sport',
+    #     default='football',
+    #     choices=list(ID_LOOKUP.keys()),
+    #     help=f'Specify the sport type'
+    # )
+    # args = arg_parser.parse_args()
+    #
+    # sport_type = args.sport
 
     # file system routine
     os.chdir('../')
-    sport_folder_path = os.path.join('data', sport_type)
 
-    sport_url = f'http://www.asapsports.com/showcat.php?id={ID_LOOKUP[sport_type]}&event=yes'
+    for sport_type in ID_LOOKUP:
+        sport_folder_path = os.path.join('data', sport_type)
 
-    print(f'Will store scraped interviews in {sport_folder_path}/')
-    os.makedirs(os.path.dirname(sport_folder_path + '/'), exist_ok=True)
+        sport_url = f'http://www.asapsports.com/showcat.php?id={ID_LOOKUP[sport_type]}&event=yes'
 
-    # get all interviews for all players
-    print(f'Getting all interviews for all {sport_type} players...')
-    player_interview_links: Dict[str, List[str]] = get_player_interview_links_for_one_sport(sport_url)
+        print(f'Will store scraped interviews in {sport_folder_path}/')
+        os.makedirs(os.path.dirname(sport_folder_path + '/'), exist_ok=True)
 
-    # write interviews to text files
-    print(f'Writing interviews for all {sport_type} players to files...')
-    # keep track of some urls that are not able to decipher
-    exclude = set()
-    for player, player_interview_urls in tqdm.tqdm(player_interview_links.items()):
-        os.makedirs(os.path.dirname(os.path.join(sport_folder_path, player) + '/'), exist_ok=True)
-        count = 1
-        for interview_url in player_interview_urls:
-            correct, name, time, players, text = get_interview_text(interview_url)
-            if correct:
-                filename = os.path.join(sport_folder_path, player, str(count))
-                count += 1
-                with open(filename, 'w') as f:
-                    f.write(name + '\n')
-                    f.write(time + '\n')
-                    for player_name in players:
-                        f.write(player_name + '\n')
-                    f.write('START_OF_INTERVIEW_TEXT' + '\n')
-                    f.write(text + '\n')
-                    f.write('END_OF_INTERVIEW_TEXT')
-                    f.close()
-            else:
-                exclude.add(interview_url)
+        # get all interviews for all players
+        print(f'Getting all interviews for all {sport_type} players...')
+        player_interview_links: Dict[str, List[str]] = get_player_interview_links_for_one_sport(sport_url)
 
-    # record urls that are not decoded correctly
-    print(f'There are {len(exclude)} urls excluded in total. See excluded_url.txt for details.')
-    with open(os.path.join(sport_folder_path, 'excluded_url.txt'), 'w') as f:
-        for excluded_url in exclude:
-            f.write(excluded_url + '\n')
-        f.close()
+        # write interviews to text files
+        print(f'Writing interviews for all {sport_type} players to files...')
+        # keep track of some urls that are not able to decipher
+        exclude = set()
+        for player, player_interview_urls in tqdm.tqdm(player_interview_links.items()):
+            os.makedirs(os.path.dirname(os.path.join(sport_folder_path, player) + '/'), exist_ok=True)
+            count = 1
+            for interview_url in player_interview_urls:
+                correct, name, time, players, text = get_interview_text(interview_url)
+                if correct:
+                    filename = os.path.join(sport_folder_path, player, str(count))
+                    count += 1
+                    with open(filename, 'w') as f:
+                        f.write(name + '\n')
+                        f.write(time + '\n')
+                        for player_name in players:
+                            f.write(player_name + '\n')
+                        f.write('START_OF_INTERVIEW_TEXT' + '\n')
+                        f.write(text + '\n')
+                        f.write('END_OF_INTERVIEW_TEXT')
+                        f.close()
+                else:
+                    exclude.add(interview_url)
+
+        # record urls that are not decoded correctly
+        print(f'There are {len(exclude)} urls excluded in total. See excluded_url.txt for details.')
+        with open(os.path.join(sport_folder_path, 'excluded_url.txt'), 'w') as f:
+            for excluded_url in exclude:
+                f.write(excluded_url + '\n')
+            f.close()
 
 
 if __name__ == '__main__':

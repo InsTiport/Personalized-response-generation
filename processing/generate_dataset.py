@@ -67,14 +67,25 @@ def main():
                         continue
 
                     # check whether this interview has been encountered before
-                    if interview_text[:300] not in already_seen:
-                        already_seen.add(interview_text[:300])
+                    if interview_text not in already_seen:
+                        already_seen.add(interview_text)
                     else:
                         continue
 
                     try:
                         # break the interview text into sentences
-                        sentences = list(seg.segment(interview_text))  # \x1e: record separator
+                        # \x1e: record separator
+                        sentences = [sentence.strip() for sentence in list(seg.segment(interview_text))]
+
+                        # need to further segment sentences because the segment is mot perfect
+                        sentences_fully_segmented = []
+                        for sentence in sentences:
+                            if 'Q. ' in sentence and sentence.index('Q. ') != 0:
+                                sentences_fully_segmented.append(sentence[:sentence.index('Q. ')])
+                                for segmented in seg.segment(sentence[sentence.index('Q. '):]):
+                                    sentences_fully_segmented.append(segmented)
+                            else:
+                                sentences_fully_segmented.append(sentence)
                     except ValueError:
                         print('Exception occurs while doing sentence segmentation')
                         print(title)
@@ -91,7 +102,7 @@ def main():
                     dataset_writer.write(f'4 [section_wiki]{(" " + str(section_wiki)) if section_wiki != -1 else ""}\n')
                     dataset_writer.write(f'5 [title] {title}\n')
                     dataset_writer.write(f'6 [date] {date}\n')
-                    interviewees, backgrounds, qa_pairs = generate_utterance(sentences, interviewees, episode_id)
+                    interviewees, backgrounds, qa_pairs = generate_utterance(sentences_fully_segmented, interviewees, episode_id)
                     dataset_writer.write(f'7 [participants] {"|".join(interviewees)}\n')
                     idx = 8
                     for bg in backgrounds:
@@ -108,7 +119,6 @@ def main():
                     episode_id += 1
 
                     f.close()
-
         # write non-English interviews discovered to file
         with open(os.path.join(sport_folder_path, 'non_English_interviews.txt'), 'w') as f:
             for interview in not_en:
