@@ -3,10 +3,10 @@ from torch.nn.functional import log_softmax
 from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import AdamW
 import torch
-from torchtext.data import TabularDataset, BucketIterator, RawField
 import numpy as np
 import os
 import tqdm
+from interview_dataset import InterviewDataset
 
 # setup args
 arg_parser = argparse.ArgumentParser()
@@ -47,36 +47,12 @@ control and logging
 torch.manual_seed(0)
 np.random.seed(0)
 # model saving and logging paths
-MODEL_NAME = f'bart-base_epoch_{NUM_EPOCH}_bsz_{BATCH_SIZE}_small_utterance'
-os.makedirs(os.path.dirname('model' + '/'), exist_ok=True)
-SAVE_PATH = os.path.join('model', f'{MODEL_NAME}.pt')
-log_file = open(os.path.join('model', f'{MODEL_NAME}.log'), 'w')
+os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
+MODEL_NAME = f'bart-base_epoch_{NUM_EPOCH}_bsz_{BATCH_SIZE}'
+SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}.pt')
+log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.log'), 'w')
 
 print(f'Training for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
-
-'''
-load dataset
-'''
-# prepare fields (needed when loading dataset)
-question = RawField()
-response = RawField()
-fields = {'question': ('q', question), 'response': ('r', response)}
-# load dataset
-train_set, valid_set, test_set = TabularDataset.splits(path=os.path.join('data', 'csv'),
-                                                       train='smaller_utterance_train.csv',
-                                                       validation='smaller_utterance_valid.csv',
-                                                       test='smaller_utterance_test.csv',
-                                                       format='csv',
-                                                       fields=fields)
-
-# # used for debugging
-# train_set.examples = train_set.examples[:10]
-# valid_set.examples = valid_set.examples[:10]
-
-# split dataset into batches
-train_iterator = BucketIterator(dataset=train_set, batch_size=BATCH_SIZE, shuffle=True)
-valid_iterator = BucketIterator(dataset=valid_set, batch_size=BATCH_SIZE, shuffle=True)
-test_iterator = BucketIterator(dataset=test_set, batch_size=BATCH_SIZE, shuffle=True)
 
 '''
 model and tokenizer
@@ -103,17 +79,23 @@ for epo in range(NUM_EPOCH):
     model.train()
     total_loss = 0
 
+    '''
+    DataLoader
+    '''
+    dataset = InterviewDataset()
+    data_loader = torch.utils.data.DataLoader(
+        dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=0
+    )
+
     # training
-    train_iterator_with_progress = tqdm.tqdm(train_iterator)
+    train_iterator_with_progress = tqdm.tqdm(data_loader)
     idx = 0
     for batch in train_iterator_with_progress:
-        # FIXME for now, skip all invalid question-answer pairs (those having questions longer than 685)
-        remove_idx = [i for i, q in enumerate(batch.q) if len(q) >= 685]
-        batch_q = [q for i, q in enumerate(batch.q) if i not in remove_idx]
-        batch_r = [r for i, r in enumerate(batch.r) if i not in remove_idx]
-        assert len(batch_q) == len(batch_r)
-        if len(batch_q) == 0:
-            continue
+        batch_q = batch['question']
+        batch_r = batch['response']
 
         # input encoding
         input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
@@ -152,20 +134,26 @@ for epo in range(NUM_EPOCH):
     # evaluation
     model.eval()
     with torch.no_grad():
+        '''
+        DataLoader
+        '''
+        valid_dataset = InterviewDataset(data='dev')
+        valid_data_loader = torch.utils.data.DataLoader(
+            valid_dataset,
+            batch_size=BATCH_SIZE,
+            shuffle=True,
+            num_workers=0
+        )
+
         batch_num = 0
         perplexity_sum = 0
         total_loss = 0
         # used to perform macro-average ppl
         total_ppl = 0  # record sum of ppl
         N = 0  # number of validation samples
-        for batch in valid_iterator:
-            # FIXME for now, skip all invalid question-answer pairs (those having questions longer than 685)
-            remove_idx = [i for i, q in enumerate(batch.q) if len(q) >= 685]
-            batch_q = [q for i, q in enumerate(batch.q) if i not in remove_idx]
-            batch_r = [r for i, r in enumerate(batch.r) if i not in remove_idx]
-            assert len(batch_q) == len(batch_r)
-            if len(batch_q) == 0:
-                continue
+        for batch in valid_data_loader:
+            batch_q = batch['question']
+            batch_r = batch['response']
 
             # input encoding
             input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
@@ -201,8 +189,9 @@ for epo in range(NUM_EPOCH):
         perplexity_2 = (total_ppl / N).item()
         print(f'Perplexity: {perplexity}')
         print(f'Perplexity (avg): {perplexity_2}')
-        log_file.write(f'Perplexity:{perplexity}\n')
-
+        log_file.write(f'Perplexity:{perplexity} ')
+        log_file.write(f'Perplexity_avg:{perplexity_2}\n')
+        
 # save model
 torch.save(model.state_dict(), SAVE_PATH)
 # close log file

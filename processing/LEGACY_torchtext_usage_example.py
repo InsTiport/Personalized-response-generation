@@ -1,7 +1,7 @@
 from torchtext.data import TabularDataset, BucketIterator, RawField
 import os
 
-BATCH_SIZE = 10
+BATCH_SIZE = 2
 
 os.chdir('../')
 

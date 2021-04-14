@@ -46,10 +46,11 @@ if __name__ == '__main__':
 
     dataset = InterviewDataset(use_wiki=False)
 
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size=4, shuffle=True, num_workers=0)
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=True, num_workers=0)
 
     batch = next(iter(data_loader))
-    print(batch)
+    print(batch['question'])
+    print(batch['response'])
 
     print(f'Size of the dataset: {len(dataset)}')
 
