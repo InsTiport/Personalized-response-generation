@@ -2,15 +2,15 @@
 
 ## Quickstart
 
-### Data
-Access data [here](https://drive.google.com/drive/u/0/folders/1QUlBhZmDHFXlbyOHA_ID5_kW8dej1x9I). For training models, you can simply download all three `interview_qa_*.tsv`'s to your `data` folder. These files are in `tsv` format because dialogues naturally contain commas, and thus `csv` format isn't suitable here.
+### Access Data
+Access data [here](https://drive.google.com/drive/u/0/folders/1QUlBhZmDHFXlbyOHA_ID5_kW8dej1x9I). To train a model, you can simply download all three `interview_qa_*.tsv`'s to your `data` folder.
 
 Also, there is a `Dataset` class implemented in `interview_dataset.py` (in the project root directory) that can be used to access the data in these `tsv` files. Check that file for sample usage.
 
 See the [Data](#data) section for details.
 
 ### Train
-To be done...
+Right now, only training (fine-tuning) for BART is supported. See the [Training](#training-and-evaluating-models) section for details.
 
 ## Data
 
@@ -51,10 +51,10 @@ If you want to generate `interview.txt` by yourself, inside `processing` folder,
 python generate_dataset.py
 ```
 
-This will generate `interview.txt` under `data`. While generating `interview.txt` from raw transcripts, this script checks whether a script is in English by using [langdetect](https://pypi.org/project/langdetect/) and writes down interviews that are not English into a file `non_English_interviews.txt` for each sport category under its respective folder `data/[sport_type]`. Note that non-English interviews are prevalent among baseball, golf and soccer interviews.
+This will generate `interview.txt` under `data`. While generating `interview.txt` from raw transcripts, this script checks whether a script is in English using [langdetect](https://pypi.org/project/langdetect/) and records non-English interviews in `non_English_interviews.txt` (each sport category has this file under its `data/[sport_type]` folder). Note that non-English interviews are prevalent among baseball, golf and soccer interviews.
 
 ### `interview_qa.tsv` and `interview_qa_*.tsv`'s
-`interview_qa.tsv` and its three train/dev/test splits (`interview_qa_train.tsv`, `interview_qa_dev.tsv` and `interview_qa_test.tsv`) are generated from `interview.txt`. Bascially, these files are tabulated versions of `interview.txt` and thus can be used more easily during training.
+These files are in `tsv` format because dialogues naturally contain commas, and thus `csv` format isn't suitable here. `interview_qa.tsv` and its three train/dev/test splits (`interview_qa_train.tsv`, `interview_qa_dev.tsv` and `interview_qa_test.tsv`) are generated from `interview.txt`. Bascially, these files are tabulated versions of `interview.txt` and thus can be used more easily during training.
 
 Each one of these contains a header on its first line, which has 11 fields (columns): id, sport_type, game_wiki, section_wiki, title, date, participants, background, respondent, question and response. Then from the second line onward, each line will be a single training sample.
 
@@ -95,11 +95,9 @@ python link_game_background.py
 
 This script requires `game_search_result` and `section_search_result` which are loacted in `data/`. This script will scrape and assign an index for each wikipedia page and then it appends two columns at the end of `*_episode.csv` indicating the index of the background wikipedia pages.
 
-## Training
-### Training BART-base or seq2seq
-Get smaller version of training data [here](https://drive.google.com/drive/folders/1QUlBhZmDHFXlbyOHA_ID5_kW8dej1x9I?usp=sharing). To use the data, download all `smaller_utterance_*.csv` to `data/csv`.
-
-For example, to train BART-base, inside `training`, run:
+## Training and Evaluating Models
+### Training BART-base
+Inside `training`, run:
 
 ```python
 python train_BART.py -e [epoch] -b [batch size]
@@ -112,6 +110,8 @@ Arguments of these scripts:
 `-e`: number of epochs, with default value 5
 
 `-b`: batch size, with default value 2
+
+The model weights and logging info will be saved to `model_weights`.
 
 ### Evaluating trained BART-base
 Get the trained model [here](https://drive.google.com/drive/folders/12wZvtyhnTpjQEqjKljWio8bQh4syt6io?usp=sharing). To use this model, download `bart-base_epoch_10_bsz_2_small_utterance.pt` to `model`.
