@@ -86,6 +86,7 @@ def main():
                                     sentences_fully_segmented.append(segmented)
                             else:
                                 sentences_fully_segmented.append(sentence)
+                        sentences = sentences_fully_segmented
                     except ValueError:
                         print('Exception occurs while doing sentence segmentation')
                         print(title)
@@ -102,7 +103,7 @@ def main():
                     dataset_writer.write(f'4 [section_wiki]{(" " + str(section_wiki)) if section_wiki != -1 else ""}\n')
                     dataset_writer.write(f'5 [title] {title}\n')
                     dataset_writer.write(f'6 [date] {date}\n')
-                    interviewees, backgrounds, qa_pairs = generate_utterance(sentences_fully_segmented, interviewees, episode_id)
+                    interviewees, backgrounds, qa_pairs = generate_utterance(sentences, interviewees, episode_id)
                     dataset_writer.write(f'7 [participants] {"|".join(interviewees)}\n')
                     idx = 8
                     for bg in backgrounds:
