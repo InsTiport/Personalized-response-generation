@@ -1,13 +1,17 @@
 import argparse
 import os
+import sys
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 from torchtext.data import RawField, TabularDataset, BucketIterator
 import torch.optim as opt
 from tqdm import tqdm
 from transformers import BartTokenizer
 
+sys.path.insert(0, os.path.abspath('..'))
+from interview_dataset import InterviewDataset
 
 class Encoder(nn.Module):
     def __init__(self, vocab_size=50265, embed_size=1024, embedding=None, hidden_size=1024, num_layers=4,
@@ -243,26 +247,13 @@ print(f'Training sequence2sequence model for {NUM_EPOCH} epochs, with batch size
 '''
 load dataset
 '''
-# prepare fields (needed when loading dataset)
-question = RawField()
-response = RawField()
-fields = {'question': ('q', question), 'response': ('r', response)}
-# load dataset
-train_set, valid_set, test_set = TabularDataset.splits(path=os.path.join('data', 'csv'),
-                                                       train='smaller_utterance_train.csv',
-                                                       validation='smaller_utterance_valid.csv',
-                                                       test='smaller_utterance_test.csv',
-                                                       format='csv',
-                                                       fields=fields)
+dataset_train = InterviewDataset(data='train')
+dataset_dev = InterviewDataset(data='dev')
+dataset_test = InterviewDataset(data='test')
 
-# # used for debugging
-# train_set.examples = train_set.examples[:10]
-# valid_set.examples = valid_set.examples[:10]
-
-# split dataset into batches
-train_iterator = BucketIterator(dataset=train_set, batch_size=BATCH_SIZE, shuffle=True)
-valid_iterator = BucketIterator(dataset=valid_set, batch_size=BATCH_SIZE, shuffle=True)
-test_iterator = BucketIterator(dataset=test_set, batch_size=BATCH_SIZE, shuffle=True)
+dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, shuffle=True)
+dataloader_dev = DataLoader(dataset_dev, batch_size=BATCH_SIZE, shuffle=True)
+dataloader_test = DataLoader(dataset_test, batch_size=BATCH_SIZE, shuffle=True)
 
 '''
 model and tokenizer
@@ -287,13 +278,13 @@ for epo in range(NUM_EPOCH):
     total_loss = 0
 
     # training
-    train_iterator_with_progress = tqdm(train_iterator)
+    train_iterator_with_progress = tqdm(dataloader_train)
     idx = 0
     for batch in train_iterator_with_progress:
         # FIXME for now, skip all invalid question-answer pairs (those having questions longer than 685)
-        remove_idx = [i for i, q in enumerate(batch.q) if len(q) >= 685]
-        batch_q = [q.replace('\u2011', '') for i, q in enumerate(batch.q) if i not in remove_idx]
-        batch_r = [r.replace('\u2011', '') for i, r in enumerate(batch.r) if i not in remove_idx]
+        remove_idx = [i for i, q in enumerate(batch['question']) if len(q) >= 685]
+        batch_q = [q.replace('\u2011', '') for i, q in enumerate(batch['question']) if i not in remove_idx]
+        batch_r = [r.replace('\u2011', '') for i, r in enumerate(batch['response']) if i not in remove_idx]
         assert len(batch_q) == len(batch_r)
         if len(batch_q) == 0:
             continue
