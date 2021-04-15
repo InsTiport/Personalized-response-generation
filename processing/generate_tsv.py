@@ -21,6 +21,8 @@ with open(os.path.join('data', 'interview.txt'), 'r') as r:
         w.write('question\t')
         w.write('response\n')
 
+        player2index = dict()
+
         for interview in dataset:
             lines = interview.split('\n')
             # some lines may be empty due to splitting, remove those
@@ -45,6 +47,9 @@ with open(os.path.join('data', 'interview.txt'), 'r') as r:
                     question, response = lines[i].split('\t')[:2]  # only keep the first response for every question
                     question = question[question.index('Q:') + len('Q: '):]
                     respondent = response[:response.index(':')].lower().title()
+                    respondent_with_sport_type = respondent + '_' + sport_type
+                    if respondent_with_sport_type not in player2index.keys():
+                        player2index[respondent_with_sport_type] = len(player2index)
                     response = response[response.index(':') + len(': '):]
                     if len(question) == 0 or len(response) == 0:
                         continue
@@ -58,9 +63,10 @@ with open(os.path.join('data', 'interview.txt'), 'r') as r:
                     w.write(f'{participants}\t')
                     w.write(f'{background}\t')
 
-                    w.write(f'{respondent}\t')
+                    w.write(f'{respondent} | {player2index[respondent_with_sport_type]}\t')
                     w.write(f'{question}\t')
                     w.write(f'{response}\n')
+        print(len(player2index))
 
 print('generating train, dev and test splits...')
 with open(os.path.join('data', 'interview_qa.tsv'), 'r') as r:

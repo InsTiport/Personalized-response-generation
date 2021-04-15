@@ -59,7 +59,7 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     def __init__(self, vocab_size=50265, embed_size=1024, embedding=None, hidden_size=1024, num_layers=4,
-                 dropout=0.1, use_attention=True):
+                 dropout=0.1, use_attention=True, speaker=False, num_speakers=25294, speaker_emb_dim=512):
         super(Decoder, self).__init__()
 
         self.vocab_size = vocab_size
@@ -71,20 +71,33 @@ class Decoder(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
         
         self.use_attention = use_attention
+        
+        self.speaker = speaker
+        self.num_speakers = num_speakers
+        self.speaker_embed_dim = speaker_emb_dim
 
-        self.rnn = nn.LSTM(
-            input_size=embed_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            dropout=dropout
-        )
+        if self.speaker:
+            self.speaker_embedding = nn.Embedding(num_embeddings=num_speakers, embedding_dim=speaker_emb_dim)
+            self.rnn = nn.LSTM(
+                input_size=embed_size+speaker_emb_dim,
+                hidden_size=hidden_size,
+                num_layers=num_layers,
+                dropout=dropout
+            )
+        else:
+            self.rnn = nn.LSTM(
+                    input_size=embed_size,
+                    hidden_size=hidden_size,
+                    num_layers=num_layers,
+                    dropout=dropout
+            )
         
         self.attention_feed = nn.Linear(in_features=hidden_size, out_features=hidden_size)
         self.attention_concat = nn.Linear(in_features=2*hidden_size, out_features=hidden_size)
 
         self.out = nn.Linear(in_features=hidden_size, out_features=vocab_size)
 
-    def forward(self, x, h_i, c_i, encoder_output, attention_mask):
+    def forward(self, x, h_i, c_i, encoder_output, attention_mask, speaker_id):
         """
         Parameters
         ----------
@@ -116,27 +129,31 @@ class Decoder(nn.Module):
         """
 
         embed = self.dropout(self.embedding(x))  # embed.shape: (seq_len, batch_size, embed_size)
+        
+        if self.speaker:
+            speaker_emb = self.dropout(self.speaker_embedding(speaker_id)).expand(x.shape[0], -1, -1)
+            lstm_out, (h_o, c_o) = self.rnn(torch.cat((embed, speaker_emb), dim=2), (h_i, c_i))  # lstm_out.shape: (seq_len, batch_size, hidden_size)
+        else:
+            lstm_out, (h_o, c_o) = self.rnn(embed, (h_i, c_i))  # lstm_out.shape: (seq_len, batch_size, hidden_size)
 
-        lstm_out, (h_o, c_o) = self.rnn(embed, (h_i, c_i))  # lstm_out.shape: (seq_len, batch_size, hidden_size)
-
+        # soft attention of Luong's style (Luong et al., 2015)
         if self.use_attention:
-            with torch.autograd.set_detect_anomaly(True):
-                lstm_out_transformed = self.attention_feed(lstm_out)
+            lstm_out_transformed = self.attention_feed(lstm_out)
 
-                # need to reshape lstm_out_transformed to use bmm
-                # lstm_out_transformed.shape : (batch_size, hidden_size, seq_len)
-                lstm_out_transformed = lstm_out_transformed.permute(1, 2, 0)
+            # need to reshape lstm_out_transformed to use bmm
+            # lstm_out_transformed.shape : (batch_size, hidden_size, seq_len)
+            lstm_out_transformed = lstm_out_transformed.permute(1, 2, 0)
 
-                # need to reshape encoder_output to use bmm
-                # encoder_output.shape: (batch_size, encoder_seq_len, hidden_size)
-                encoder_output = encoder_output.permute(1, 0, 2)
-    
-                attention_score = torch.bmm(encoder_output, lstm_out_transformed) # attention_score.shape: (batch_size, encoder_seq_len, seq_len)
-                weights = nn.Softmax(dim=1)(attention_score) # weights.shape: (batch_size, encoder_seq_len, seq_len)
-                weighted_sum = torch.sum(encoder_output.unsqueeze(3) * weights.unsqueeze(2), dim=1) # weighted_sum.shape: (batch_size, hidden_size, seq_len)
-                weighted_sum = weighted_sum.permute(2, 0, 1) # reshape weighted_sum to fit the shape of lstm_out
+            # need to reshape encoder_output to use bmm
+            # encoder_output.shape: (batch_size, encoder_seq_len, hidden_size)
+            encoder_output = encoder_output.permute(1, 0, 2)
 
-                lstm_out = nn.Tanh()(self.attention_concat(torch.cat((lstm_out, weighted_sum), dim=2)))
+            attention_score = torch.bmm(encoder_output, lstm_out_transformed) # attention_score.shape: (batch_size, encoder_seq_len, seq_len)
+            weights = nn.Softmax(dim=1)(attention_score) # weights.shape: (batch_size, encoder_seq_len, seq_len)
+            weighted_sum = torch.sum(encoder_output.unsqueeze(3) * weights.unsqueeze(2), dim=1) # weighted_sum.shape: (batch_size, hidden_size, seq_len)
+            weighted_sum = weighted_sum.permute(2, 0, 1) # reshape weighted_sum to fit the shape of lstm_out
+
+            lstm_out = nn.Tanh()(self.attention_concat(torch.cat((lstm_out, weighted_sum), dim=2)))
 
         out = self.out(lstm_out)  # out.shape: (seq_len, batch_size, vocab_size)
 
@@ -144,13 +161,17 @@ class Decoder(nn.Module):
 
 
 class Seq2Seq(nn.Module):
-    def __init__(self, vocab_size=50265, embed_size=1024, hidden_size=1024, num_layers=2, dropout=0.1, teacher_forcing=0.1):
+    def __init__(self, vocab_size=50265, embed_size=1024, hidden_size=1024, num_layers=2, dropout=0.1, use_attention=True, speaker=False, num_speakers=25294, speaker_emb_dim=256):
         super(Seq2Seq, self).__init__()
 
         self.vocab_size = vocab_size
         self.embed_size = embed_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
+        self.use_attention = use_attention
+        self.speaker = speaker
+        self.num_speakers = num_speakers
+        self.speaker_emb_dim = speaker_emb_dim
 
         '''
         Special token ids:
@@ -176,10 +197,14 @@ class Seq2Seq(nn.Module):
             embedding=self.embedding,
             hidden_size=hidden_size,
             num_layers=num_layers,
-            dropout=dropout
+            dropout=dropout,
+            use_attention=use_attention,
+            speaker=speaker,
+            num_speakers=num_speakers,
+            speaker_emb_dim=speaker_emb_dim
         )
 
-    def forward(self, x, y=None, train=False):
+    def forward(self, x, y=None, speaker_id=None, train=False):
         """
         Parameters
         ----------
@@ -207,7 +232,7 @@ class Seq2Seq(nn.Module):
         if train:
             max_output_seq_len = y.shape[0]
                 
-            logits, h, c = self.decoder(y, h, c, encoder_output, None) #logits.shape: (max_output_seq_len, batch_size, vocab_size)
+            logits, h, c = self.decoder(y, h, c, encoder_output, None, speaker_id) #logits.shape: (max_output_seq_len, batch_size, vocab_size)
 
             return logits
 
@@ -248,6 +273,12 @@ arg_parser.add_argument(
     default=2,
     help=f'Specify batch size'
 )
+arg_parser.add_argument(
+    '-s', '--speaker',
+    action='store_true',
+    help=f'Use speaker embedding'
+)
+
 args = arg_parser.parse_args()
 os.chdir('../')
 
@@ -291,7 +322,11 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 if device == 'cuda':
     torch.cuda.set_device(DEVICE_ID)  # use an unoccupied GPU
 # load model
-model = Seq2Seq().to(device)
+if args.speaker:
+    model = Seq2Seq(speaker=True).to(device)
+else:
+    model = Seq2Seq().to(device)
+
 # load tokenizer
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
@@ -319,11 +354,17 @@ for epo in range(NUM_EPOCH):
         target_ids = target_encoding['input_ids']
         target_ids = torch.transpose(target_ids, 0, 1).to(device)  # need reshape to satisfy model input format
 
+        speaker_id = [int(s.split('|')[1]) for s in batch['respondent']]
+        speaker_id = torch.tensor(speaker_id, dtype=torch.long).to(device)
+
         # zero-out gradient
         optimizer.zero_grad()
 
         # forward pass
-        outputs = model(x=input_ids, y=target_ids, train=True)  # outputs.shape: (target_len, batch_size, vocab_size)
+        if args.speaker:
+            outputs = model(x=input_ids, y=target_ids, speaker_id=speaker_id, train=True)  # outputs.shape: (target_len, batch_size, vocab_size)
+        else:
+            outputs = model(x=input_ids, y=target_ids, train=True)  # outputs.shape: (target_len, batch_size, vocab_size)
 
         # prepare labels for cross entropy by removing the first time stamp (<s>)
         labels = target_ids[1:, :]  # shape: (target_len - 1, batch_size)
