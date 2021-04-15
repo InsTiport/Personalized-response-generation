@@ -46,6 +46,8 @@ with open(os.path.join('data', 'interview.txt'), 'r') as r:
                     question = question[question.index('Q:') + len('Q: '):]
                     respondent = response[:response.index(':')].lower().title()
                     response = response[response.index(':') + len(': '):]
+                    if len(question) == 0 or len(response) == 0:
+                        continue
 
                     w.write(f'{interview_id}\t')
                     w.write(f'{sport_type}\t')
