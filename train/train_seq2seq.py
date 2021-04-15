@@ -11,7 +11,7 @@ from tqdm import tqdm
 from transformers import BartTokenizer
 
 sys.path.insert(0, os.path.abspath('..'))
-from interview_dataset import InterviewDataset
+from interview_dataset import InterviewDataset, InterviewDatasetAlternatives
 
 class Encoder(nn.Module):
     def __init__(self, vocab_size=50265, embed_size=1024, embedding=None, hidden_size=1024, num_layers=4,
@@ -83,7 +83,7 @@ class Decoder(nn.Module):
         """
         Parameters
         ----------
-        x : torch.Tensor (batch_size)
+        x : torch.Tensor (seq_len, batch_size)
             The input batch of words
 
         h_i : torch.Tensor (num_layers, batch_size, hidden_size)
@@ -94,7 +94,7 @@ class Decoder(nn.Module):
 
         Returns
         ---------
-        out : torch.Tensor (batch_size, vocab_size)
+        out : torch.Tensor (seq_len, batch_size, vocab_size)
             Logits
 
         h_i : torch.Tensor (num_layers, batch_size, hidden_size)
@@ -103,21 +103,18 @@ class Decoder(nn.Module):
         c_i : torch.Tensor (num_layers, batch_size, hidden_size)
             cell state of LSTM at t (current timestamp)
         """
-        # add extra dimension
-        x = x.unsqueeze(0)  # x.shape: (1, batch_size)
 
-        embed = self.dropout(self.embedding(x))  # embed.shape: (1, batch_size, embed_size)
+        embed = self.dropout(self.embedding(x))  # embed.shape: (seq_len, batch_size, embed_size)
 
-        lstm_out, (h_o, c_o) = self.rnn(embed, (h_i, c_i))  # lstm_out.shape: (1, batch_size, hidden_size)
+        lstm_out, (h_o, c_o) = self.rnn(embed, (h_i, c_i))  # lstm_out.shape: (seq_len, batch_size, hidden_size)
 
-        out = self.out(lstm_out)  # out.shape: (1, batch_size, vocab_size)
-        out = out.squeeze()  # out.shape: (batch_size, vocab_size)
+        out = self.out(lstm_out)  # out.shape: (seq_len, batch_size, vocab_size)
 
         return out, h_o, c_o
 
 
 class Seq2Seq(nn.Module):
-    def __init__(self, vocab_size=50265, embed_size=1024, hidden_size=1024, num_layers=2, dropout=0.1):
+    def __init__(self, vocab_size=50265, embed_size=1024, hidden_size=1024, num_layers=2, dropout=0.1, teacher_forcing=0.1):
         super(Seq2Seq, self).__init__()
 
         self.vocab_size = vocab_size
@@ -179,21 +176,22 @@ class Seq2Seq(nn.Module):
 
         if train:
             max_output_seq_len = y.shape[0]
-
-            # will hold logits for output
-            logits = torch.zeros(max_output_seq_len, bsz, self.vocab_size)
-
-            for t in range(max_output_seq_len):
-                # decoder inputs
-                decoder_in = y[t]  # shape: (batch_size)
-
-                # decode one step
-                decoder_out, h, c = self.decoder(decoder_in, h, c)  # decoder_out.shape: (batch_size, vocab_size)
-
-                # store logits
-                logits[t] = decoder_out
+                
+            logits, h, c = self.decoder(y, h, c) #logits.shape: (max_output_seq_len, batch_size, vocab_size)
 
             return logits
+
+            # for t in range(max_output_seq_len):
+            #     # decoder inputs
+            #     decoder_in = y[t].unsqueeze(0)  # shape: (1, batch_size)
+
+            #     # decode one step
+            #     decoder_out, h, c = self.decoder(decoder_in, h, c)  # decoder_out.shape: (batch_size, vocab_size)
+
+            #     # store logits
+            #     logits[t] = decoder_out
+
+            # return logits
         else:
             pass
 
@@ -247,9 +245,9 @@ print(f'Training sequence2sequence model for {NUM_EPOCH} epochs, with batch size
 '''
 load dataset
 '''
-dataset_train = InterviewDataset(data='train')
-dataset_dev = InterviewDataset(data='dev')
-dataset_test = InterviewDataset(data='test')
+dataset_train = InterviewDatasetAlternatives(data='train')
+dataset_dev = InterviewDatasetAlternatives(data='dev')
+dataset_test = InterviewDatasetAlternatives(data='test')
 
 dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, shuffle=True)
 dataloader_dev = DataLoader(dataset_dev, batch_size=BATCH_SIZE, shuffle=True)
@@ -281,21 +279,13 @@ for epo in range(NUM_EPOCH):
     train_iterator_with_progress = tqdm(dataloader_train)
     idx = 0
     for batch in train_iterator_with_progress:
-        # FIXME for now, skip all invalid question-answer pairs (those having questions longer than 685)
-        remove_idx = [i for i, q in enumerate(batch['question']) if len(q) >= 685]
-        batch_q = [q.replace('\u2011', '') for i, q in enumerate(batch['question']) if i not in remove_idx]
-        batch_r = [r.replace('\u2011', '') for i, r in enumerate(batch['response']) if i not in remove_idx]
-        assert len(batch_q) == len(batch_r)
-        if len(batch_q) == 0:
-            continue
-
         # input encoding
-        input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
+        input_encoding = tokenizer(batch['question'], return_tensors='pt', padding=True, truncation=True)
         input_ids = input_encoding['input_ids']
         input_ids = torch.transpose(input_ids, 0, 1).to(device)  # need reshape to satisfy model input format
 
         # target encoding
-        target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
+        target_encoding = tokenizer(batch['response'], return_tensors='pt', padding=True, truncation=True)
         target_ids = target_encoding['input_ids']
         target_ids = torch.transpose(target_ids, 0, 1).to(device)  # need reshape to satisfy model input format
 
@@ -331,6 +321,9 @@ for epo in range(NUM_EPOCH):
     print(f'Loss in epoch {epo}: {total_loss}')
     log_file.write(f'Epoch:{epo} ')
     log_file.write(f'Loss:{total_loss}\n')
+    
+    path = os.path.join('model', f'{MODEL_NAME}_epoch_{epo}.pt')
+    torch.save(model.state_dict(), path)
 
 
 # save model
