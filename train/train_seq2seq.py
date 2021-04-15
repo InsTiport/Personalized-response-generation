@@ -54,12 +54,12 @@ class Encoder(nn.Module):
         # lstm layer
         lstm_out, (h_o, c_o) = self.rnn(embed)
 
-        return h_o, c_o
+        return lstm_out, h_o, c_o
 
 
 class Decoder(nn.Module):
     def __init__(self, vocab_size=50265, embed_size=1024, embedding=None, hidden_size=1024, num_layers=4,
-                 dropout=0.1):
+                 dropout=0.1, use_attention=True):
         super(Decoder, self).__init__()
 
         self.vocab_size = vocab_size
@@ -69,6 +69,8 @@ class Decoder(nn.Module):
 
         self.embedding = embedding
         self.dropout = nn.Dropout(p=dropout)
+        
+        self.use_attention = use_attention
 
         self.rnn = nn.LSTM(
             input_size=embed_size,
@@ -76,10 +78,13 @@ class Decoder(nn.Module):
             num_layers=num_layers,
             dropout=dropout
         )
+        
+        self.attention_feed = nn.Linear(in_features=hidden_size, out_features=hidden_size)
+        self.attention_concat = nn.Linear(in_features=2*hidden_size, out_features=hidden_size)
 
         self.out = nn.Linear(in_features=hidden_size, out_features=vocab_size)
 
-    def forward(self, x, h_i, c_i):
+    def forward(self, x, h_i, c_i, encoder_output, attention_mask):
         """
         Parameters
         ----------
@@ -91,6 +96,12 @@ class Decoder(nn.Module):
 
         c_i : torch.Tensor (num_layers, batch_size, hidden_size)
             cell state of LSTM at t - 1
+
+        encoder_output: torch.Tensor (encoder_seq_len, batch_size, hidden_size)
+            hidden states in the final layer of the encoder
+        
+        attention mask: torch.Tensor (encoder_seq_len, batch_size)
+            boolean tensor indicating the position of padding
 
         Returns
         ---------
@@ -107,6 +118,25 @@ class Decoder(nn.Module):
         embed = self.dropout(self.embedding(x))  # embed.shape: (seq_len, batch_size, embed_size)
 
         lstm_out, (h_o, c_o) = self.rnn(embed, (h_i, c_i))  # lstm_out.shape: (seq_len, batch_size, hidden_size)
+
+        if self.use_attention:
+            with torch.autograd.set_detect_anomaly(True):
+                lstm_out_transformed = self.attention_feed(lstm_out)
+
+                # need to reshape lstm_out_transformed to use bmm
+                # lstm_out_transformed.shape : (batch_size, hidden_size, seq_len)
+                lstm_out_transformed = lstm_out_transformed.permute(1, 2, 0)
+
+                # need to reshape encoder_output to use bmm
+                # encoder_output.shape: (batch_size, encoder_seq_len, hidden_size)
+                encoder_output = encoder_output.permute(1, 0, 2)
+    
+                attention_score = torch.bmm(encoder_output, lstm_out_transformed) # attention_score.shape: (batch_size, encoder_seq_len, seq_len)
+                weights = nn.Softmax(dim=1)(attention_score) # weights.shape: (batch_size, encoder_seq_len, seq_len)
+                weighted_sum = torch.sum(encoder_output.unsqueeze(3) * weights.unsqueeze(2), dim=1) # weighted_sum.shape: (batch_size, hidden_size, seq_len)
+                weighted_sum = weighted_sum.permute(2, 0, 1) # reshape weighted_sum to fit the shape of lstm_out
+
+                lstm_out = nn.Tanh()(self.attention_concat(torch.cat((lstm_out, weighted_sum), dim=2)))
 
         out = self.out(lstm_out)  # out.shape: (seq_len, batch_size, vocab_size)
 
@@ -172,12 +202,12 @@ class Seq2Seq(nn.Module):
         """
         bsz = x.shape[1]
 
-        h, c = self.encoder(x)  # use encoder hidden/cell states for decoder
+        encoder_output, h, c = self.encoder(x)  # use encoder hidden/cell states for decoder
 
         if train:
             max_output_seq_len = y.shape[0]
                 
-            logits, h, c = self.decoder(y, h, c) #logits.shape: (max_output_seq_len, batch_size, vocab_size)
+            logits, h, c = self.decoder(y, h, c, encoder_output, None) #logits.shape: (max_output_seq_len, batch_size, vocab_size)
 
             return logits
 
