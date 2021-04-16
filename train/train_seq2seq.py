@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from torchtext.data import RawField, TabularDataset, BucketIterator
 import torch.optim as opt
 from tqdm import tqdm
-from transformers import BartTokenizer
+from transformers import BartTokenizer, get_linear_schedule_with_warmup
 
 sys.path.insert(0, os.path.abspath('..'))
 from interview_dataset import InterviewDataset, InterviewDatasetAlternatives
@@ -161,7 +161,7 @@ class Decoder(nn.Module):
 
 
 class Seq2Seq(nn.Module):
-    def __init__(self, vocab_size=50265, embed_size=1024, hidden_size=1024, num_layers=2, dropout=0.1, use_attention=True, speaker=False, num_speakers=25294, speaker_emb_dim=256):
+    def __init__(self, vocab_size=50265, embed_size=1024, hidden_size=1024, num_layers=2, dropout=0.3, use_attention=True, speaker=False, num_speakers=25294, speaker_emb_dim=256):
         super(Seq2Seq, self).__init__()
 
         self.vocab_size = vocab_size
@@ -274,6 +274,12 @@ arg_parser.add_argument(
     help=f'Specify batch size'
 )
 arg_parser.add_argument(
+    '--max_grad_norm',
+    type=float,
+    default=1.0,
+    help=f'Max gradient norm'
+)
+arg_parser.add_argument(
     '-s', '--speaker',
     action='store_true',
     help=f'Use speaker embedding'
@@ -296,12 +302,18 @@ control and logging
 torch.manual_seed(0)
 np.random.seed(0)
 # model saving and logging paths
-MODEL_NAME = f'seq2seq_{NUM_EPOCH}_bsz_{BATCH_SIZE}_small_utterance'
+if args.speaker:
+    MODEL_NAME = f'speaker_{NUM_EPOCH}_bsz_{BATCH_SIZE}'
+else:
+    MODEL_NAME = f'seq2seq_{NUM_EPOCH}_bsz_{BATCH_SIZE}'
 os.makedirs(os.path.dirname('model' + '/'), exist_ok=True)
 SAVE_PATH = os.path.join('model', f'{MODEL_NAME}.pt')
 log_file = open(os.path.join('model', f'{MODEL_NAME}.log'), 'w')
 
-print(f'Training sequence2sequence model for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
+if args.speaker:
+    print(f'Training sequence2sequence model with speaker embeddings for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
+else:
+    print(f'Training sequence2sequence model for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
 
 '''
 load dataset
@@ -334,6 +346,9 @@ tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 optimizer
 '''
 optimizer = opt.Adam(model.parameters())
+
+num_training_steps = (int(len(dataset_train) / BATCH_SIZE) + 1) * NUM_EPOCH
+scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=int(0.01*num_training_steps), num_training_steps=num_training_steps)
 
 # training loop
 for epo in range(NUM_EPOCH):
@@ -378,7 +393,9 @@ for epo in range(NUM_EPOCH):
         criterion = nn.CrossEntropyLoss().to(device)
         loss = criterion(outputs, labels)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm) # gradient clipping
         optimizer.step()
+        # scheduler.step()
 
         # if idx % 1000 == 0:
         #     print(f'epoch: {epo}, batch: {idx}, memory reserved {torch.cuda.memory_reserved(DEVICE_ID) / 1e9} GB')
