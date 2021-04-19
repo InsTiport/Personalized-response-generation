@@ -26,12 +26,12 @@ arg_parser.add_argument(
     default=5,
     help=f'Specify number of training epochs'
 )
-# arg_parser.add_argument(
-#     '-b', '--batch',
-#     type=int,
-#     default=1,
-#     help=f'Specify batch size'
-# )
+arg_parser.add_argument(
+    '-b', '--batch',
+    type=int,
+    default=1,
+    help=f'Specify batch size'
+)
 args = arg_parser.parse_args()
 os.chdir('../')
 
@@ -40,7 +40,7 @@ hyper-parameter
 '''
 DEVICE_ID = args.gpu  # adjust this to use an unoccupied GPU
 # BATCH_SIZE = args.batch
-BATCH_SIZE = 1
+BATCH_SIZE = args.batch
 NUM_EPOCH = args.epoch
 
 '''
@@ -51,8 +51,7 @@ torch.manual_seed(0)
 np.random.seed(0)
 # model saving and logging paths
 os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
-MODEL_NAME = f'dialogpt-small_epoch_{NUM_EPOCH}_bsz_{BATCH_SIZE}'
-SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}.pt')
+MODEL_NAME = f'dialogpt-small_bsz_{BATCH_SIZE}'
 log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.log'), 'w')
 
 print(f'Training for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
@@ -68,6 +67,7 @@ if device == 'cuda':
 model = AutoModelForCausalLM.from_pretrained('microsoft/DialoGPT-small').to(device)
 # load tokenizer
 tokenizer = AutoTokenizer.from_pretrained('microsoft/DialoGPT-small')
+tokenizer.add_special_tokens({'pad_token': '[PAD]'})  # add PAD special token to tokenizer (GPT does not have it)
 
 # optimizer
 no_decay = ['bias', 'LayerNorm.weight']
@@ -97,26 +97,18 @@ for epo in range(NUM_EPOCH):
     train_iterator_with_progress = tqdm.tqdm(data_loader)
     idx = 0
     for batch in train_iterator_with_progress:
-        batch_q = batch['question'][0]
-        batch_r = batch['response'][0]
+        batch_q = [s + tokenizer.eos_token for s in batch['question']]  # list of strings with len = bsz
+        batch_r = [s + tokenizer.eos_token for s in batch['response']]  # list of strings with len = bsz
+        # concatenate questions and responses together
+        inputs = [q + r for q, r in zip(batch_q, batch_r)]
 
         # input encoding
-        # FIXME: what separator to use?
-        # FIXME: GPT possibly attends the response part
-        input_encoding = tokenizer(batch_q + ' ' + batch_r, return_tensors='pt').to(device)
-        # input_ids = input_encoding['input_ids'].to(device)
-        # attention_mask = input_encoding['attention_mask'].to(device)
-
-        # target encoding
-        # target_encoding = tokenizer(batch_r, return_tensors='pt')
-        # target_ids = target_encoding['input_ids'].to(device)
-        # target_ids[target_ids == model.config.pad_token_id] = -100
+        input_encoding = tokenizer(inputs, return_tensors='pt', padding=True).to(device)
 
         # zero-out gradient
         optimizer.zero_grad()
 
         # forward pass
-        # FIXME: need to mask out loss of question part
         outputs = model(**input_encoding, labels=input_encoding['input_ids'])
 
         # compute loss and perform a step
@@ -152,54 +144,35 @@ for epo in range(NUM_EPOCH):
         )
 
         batch_num = 0
-        perplexity_sum = 0
         total_loss = 0
-        # used to perform macro-average ppl
-        total_ppl = 0  # record sum of ppl
-        N = 0  # number of validation samples
         for batch in valid_data_loader:
-            batch_q = batch['question']
-            batch_r = batch['response']
+            batch_q = [s + tokenizer.eos_token for s in batch['question']]  # list of strings with len = bsz
+            batch_r = [s + tokenizer.eos_token for s in batch['response']]  # list of strings with len = bsz
+            # concatenate questions and responses together
+            inputs = [q + r for q, r in zip(batch_q, batch_r)]
 
             # input encoding
-            input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
-            input_ids = input_encoding['input_ids'].to(device)
-            attention_mask = input_encoding['attention_mask'].to(device)
+            input_encoding = tokenizer(inputs, return_tensors='pt', padding=True).to(device)
 
-            # target encoding
-            target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
-            target_ids = target_encoding['input_ids'].to(device)
-            target_ids[target_ids == model.config.pad_token_id] = -100
+            # zero-out gradient
+            optimizer.zero_grad()
 
             # forward pass
-            outputs = model(input_ids, attention_mask=attention_mask, labels=target_ids)
+            outputs = model(**input_encoding, labels=input_encoding['input_ids'])
 
             # loss
             loss = outputs.loss
             total_loss += float(loss)
             batch_num += 1
 
-            # get logits and use it to calculate perplexity
-            logits = outputs.logits  # shape: (bsz, seq_len, vocab_sz)
-            logits = log_softmax(logits, dim=-1)
-            logits_flatten = logits.view(-1, model.config.vocab_size)  # shape: (bsz * seq_len, vocab_sz)
-
-            N += len(batch_q)  # accumulate the number of validation samples from this batch
-            predicted_prob = logits_flatten[range(logits_flatten.shape[0]), target_ids.view(-1)].view(target_ids.shape)
-            predicted_prob[target_ids < 0] = 0  # zero out paddings, shape: (bsz, seq_len)
-            ppl = - predicted_prob.sum(dim=1) / (target_ids >= 0).sum(dim=1)
-            ppl = torch.exp(ppl)  # ppl for each individual sample in this batch
-            total_ppl += ppl.sum()  # accumulate total ppl
-
         perplexity = np.exp(total_loss / batch_num)
-        perplexity_2 = (total_ppl / N).item()
         print(f'Perplexity: {perplexity}')
-        print(f'Perplexity (avg): {perplexity_2}')
         log_file.write(f'Perplexity:{perplexity} ')
-        log_file.write(f'Perplexity_avg:{perplexity_2}\n')
 
-# save model
-torch.save(model.state_dict(), SAVE_PATH)
+    SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{NUM_EPOCH}_checkpoint.pt')
+    # save model after training for one epoch
+    torch.save(model.state_dict(), SAVE_PATH)
+
 # close log file
 log_file.close()
 
