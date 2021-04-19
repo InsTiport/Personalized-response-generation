@@ -106,7 +106,7 @@ for epo in range(NUM_EPOCH):
         # input encoding
         input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
         # prepare labels, by masking out padding tokens (exclude them while computing loss)
-        labels = input_encoding['input_ids']
+        labels = input_encoding['input_ids'].detach().clone()
         labels[input_encoding['attention_mask'] == 0] = -100
 
         # zero-out gradient
