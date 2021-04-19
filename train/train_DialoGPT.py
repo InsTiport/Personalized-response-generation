@@ -104,10 +104,11 @@ for epo in range(NUM_EPOCH):
         inputs = [q + r for q, r in zip(batch_q, batch_r)]
 
         # input encoding
-        input_encoding = tokenizer(inputs, return_tensors='pt', padding=True).to(device)
+        input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
         # prepare labels, by masking out padding tokens (exclude them while computing loss)
         labels = input_encoding['input_ids']
         labels[input_encoding['attention_mask'] == 0] = -100
+
         # zero-out gradient
         optimizer.zero_grad()
 
@@ -155,13 +156,13 @@ for epo in range(NUM_EPOCH):
             inputs = [q + r for q, r in zip(batch_q, batch_r)]
 
             # input encoding
-            input_encoding = tokenizer(inputs, return_tensors='pt', padding=True).to(device)
-
-            # zero-out gradient
-            optimizer.zero_grad()
+            input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
+            # prepare labels, by masking out padding tokens (exclude them while computing loss)
+            labels = input_encoding['input_ids']
+            labels[input_encoding['attention_mask'] == 0] = -100
 
             # forward pass
-            outputs = model(**input_encoding, labels=input_encoding['input_ids'])
+            outputs = model(**input_encoding, labels=labels)
 
             # loss
             loss = outputs.loss
