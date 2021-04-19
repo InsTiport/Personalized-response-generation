@@ -67,7 +67,8 @@ if device == 'cuda':
 model = AutoModelForCausalLM.from_pretrained('microsoft/DialoGPT-small').to(device)
 # load tokenizer
 tokenizer = AutoTokenizer.from_pretrained('microsoft/DialoGPT-small')
-tokenizer.add_special_tokens({'pad_token': '[PAD]'})  # add PAD special token to tokenizer (GPT does not have it)
+# add pad token to tokenizer (GPT does not have it). These will be masked out
+tokenizer.pad_token = tokenizer.eos_token
 
 # optimizer
 no_decay = ['bias', 'LayerNorm.weight']
@@ -104,12 +105,14 @@ for epo in range(NUM_EPOCH):
 
         # input encoding
         input_encoding = tokenizer(inputs, return_tensors='pt', padding=True).to(device)
-
+        # prepare labels, by masking out padding tokens (exclude them while computing loss)
+        labels = input_encoding['input_ids']
+        labels[input_encoding['attention_mask'] == 0] = -100
         # zero-out gradient
         optimizer.zero_grad()
 
         # forward pass
-        outputs = model(**input_encoding, labels=input_encoding['input_ids'])
+        outputs = model(**input_encoding, labels=labels)
 
         # compute loss and perform a step
         loss = outputs.loss
@@ -169,7 +172,7 @@ for epo in range(NUM_EPOCH):
         print(f'Perplexity: {perplexity}')
         log_file.write(f'Perplexity:{perplexity} ')
 
-    SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{NUM_EPOCH}_checkpoint.pt')
+    SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{epo+1}_checkpoint.pt')
     # save model after training for one epoch
     torch.save(model.state_dict(), SAVE_PATH)
 
