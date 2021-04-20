@@ -1,14 +1,15 @@
 import argparse
 import os
+import sys
 import datasets
 import numpy as np
 import torch
 from tqdm import tqdm
 from transformers import BartForConditionalGeneration, BartTokenizer
-
-# setup args
+sys.path.insert(0, os.path.abspath('..'))
 from interview_dataset import InterviewDataset
 
+# setup args
 arg_parser = argparse.ArgumentParser()
 
 arg_parser.add_argument(
