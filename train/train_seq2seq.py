@@ -178,7 +178,7 @@ for epo in range(NUM_EPOCH):
     log_file.write(f'Epoch:{epo} ')
     log_file.write(f'Loss:{total_loss}\n')
 
-    SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{epo+1}_checkpoint.pt')
+    SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{epo+1}.pt')
     # save model after training for one epoch
     torch.save(model.state_dict(), SAVE_PATH)
 

@@ -4,6 +4,10 @@ import numpy as np
 import torch
 from transformers import BartForConditionalGeneration, BartTokenizer
 
+# Specify question to ask BART
+# question = 'Did something happen to Reed late in the game, or did you have another reason to make the change at quarterback?'
+question = 'hi, how are you doing today?'
+
 # setup args
 arg_parser = argparse.ArgumentParser()
 
@@ -54,7 +58,8 @@ os.chdir('../')
 hyper-parameter and generation specifications
 '''
 DEVICE_ID = args.gpu  # adjust this to use an unoccupied GPU
-MODEL_NAME = f'bart-base_epoch_10_bsz_2_small_utterance'
+# MODEL_NAME = f'bart-base_epoch_10_bsz_2_small_utterance'
+MODEL_NAME = f'bart-base_epoch_20_bsz_2_ConvAI2'
 
 # specifications
 r'''MAX_LEN = default value: max length of model input'''
@@ -103,43 +108,32 @@ model.eval()
 # load tokenizer
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
-football_path = os.path.join('data', 'football')
-name_set = set()
-for sub_dir in os.scandir(football_path):
-    if sub_dir.is_dir:
-        name = sub_dir.name.split(',')
-        name.reverse()
-        name = ' '.join([s.strip() for s in name])
-        name_set.add(name)
 
-for name in name_set:
-    question = f'Q: What do you think of {name}?'
+# input encoding
+input_encoding = tokenizer(question, return_tensors='pt')
+input_ids = input_encoding['input_ids'].to(device)
 
-    # input encoding
-    input_encoding = tokenizer(question, return_tensors='pt')
-    input_ids = input_encoding['input_ids'].to(device)
+# generation
+if use_beam:
+    model_res_ids = model.generate(
+        input_ids,
+        max_length=model.config.max_position_embeddings,
+        num_beams=num_beams,
+        temperature=temperature,
+        num_return_sequences=num_return_sentences,
+        early_stopping=True
+    )
+else:
+    model_res_ids = model.generate(
+        input_ids,
+        do_sample=True,
+        max_length=model.config.max_position_embeddings,
+        top_p=top_p,
+        top_k=top_k,
+        num_return_sequences=num_return_sentences
+    )
 
-    # generation
-    if use_beam:
-        model_res_ids = model.generate(
-            input_ids,
-            max_length=model.config.max_position_embeddings,
-            num_beams=num_beams,
-            temperature=temperature,
-            num_return_sequences=num_return_sentences,
-            early_stopping=True
-        )
-    else:
-        model_res_ids = model.generate(
-            input_ids,
-            do_sample=True,
-            max_length=model.config.max_position_embeddings,
-            top_p=top_p,
-            top_k=top_k,
-            num_return_sequences=num_return_sentences
-        )
+predictions = tokenizer.decode(model_res_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
-    predictions = tokenizer.decode(model_res_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
-
-    print(question)
-    print('A: ' + predictions + '\n')
+print(question)
+print('A: ' + predictions + '\n')

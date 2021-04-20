@@ -8,3 +8,4 @@ non_English_interviews.txt
 *.log
 *.ev
 data/
+figures/

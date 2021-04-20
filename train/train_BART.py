@@ -1,5 +1,5 @@
 import argparse
-from torch.nn.functional import log_softmax
+from matplotlib import pyplot as plt
 from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import AdamW
 import torch
@@ -50,11 +50,10 @@ torch.manual_seed(0)
 np.random.seed(0)
 # model saving and logging paths
 os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
-MODEL_NAME = f'bart-base_epoch_{NUM_EPOCH}_bsz_{BATCH_SIZE}'
-SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}.pt')
+MODEL_NAME = f'bart-base_bsz_{BATCH_SIZE}'
 log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.log'), 'w')
 
-print(f'Training for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
+print(f'Training BART base for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
 
 '''
 model and tokenizer
@@ -76,6 +75,9 @@ optimizer_grouped_parameters = [
 ]
 optimizer = AdamW(optimizer_grouped_parameters, lr=1e-5)
 
+# record these for every epoch
+loss_record = []
+ppl_record = []
 # training loop
 for epo in range(NUM_EPOCH):
     model.train()
@@ -88,8 +90,7 @@ for epo in range(NUM_EPOCH):
     data_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=BATCH_SIZE,
-        shuffle=True,
-        num_workers=0
+        shuffle=True
     )
 
     # training
@@ -100,11 +101,10 @@ for epo in range(NUM_EPOCH):
         batch_r = batch['response']
 
         # input encoding
-        input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
-        input_ids = input_encoding['input_ids'].to(device)
-        attention_mask = input_encoding['attention_mask'].to(device)
+        input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True).to(device)
 
         # target encoding
+        # this kind of embedding will make the input to BART decoder be like </s> <s> content </s>
         target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
         target_ids = target_encoding['input_ids'].to(device)
         target_ids[target_ids == model.config.pad_token_id] = -100
@@ -113,7 +113,7 @@ for epo in range(NUM_EPOCH):
         optimizer.zero_grad()
 
         # forward pass
-        outputs = model(input_ids, attention_mask=attention_mask, labels=target_ids)
+        outputs = model(**input_encoding, labels=target_ids)
 
         # compute loss and perform a step
         loss = outputs.loss
@@ -126,6 +126,7 @@ for epo in range(NUM_EPOCH):
         idx += 1
 
         total_loss += float(loss)
+        loss_record.append(total_loss)
         train_iterator_with_progress.set_description(f'Epoch {epo}')
         train_iterator_with_progress.set_postfix({'Loss': loss.item()})
 
@@ -143,61 +144,61 @@ for epo in range(NUM_EPOCH):
         valid_data_loader = torch.utils.data.DataLoader(
             valid_dataset,
             batch_size=BATCH_SIZE,
-            shuffle=True,
-            num_workers=0
+            shuffle=True
         )
 
         batch_num = 0
-        perplexity_sum = 0
         total_loss = 0
-        # used to perform macro-average ppl
-        total_ppl = 0  # record sum of ppl
-        N = 0  # number of validation samples
         for batch in valid_data_loader:
             batch_q = batch['question']
             batch_r = batch['response']
 
             # input encoding
-            input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
-            input_ids = input_encoding['input_ids'].to(device)
-            attention_mask = input_encoding['attention_mask'].to(device)
+            input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True).to(device)
 
             # target encoding
             target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
             target_ids = target_encoding['input_ids'].to(device)
             target_ids[target_ids == model.config.pad_token_id] = -100
 
+            # zero-out gradient
+            optimizer.zero_grad()
+
             # forward pass
-            outputs = model(input_ids, attention_mask=attention_mask, labels=target_ids)
+            outputs = model(**input_encoding, labels=target_ids)
 
             # loss
             loss = outputs.loss
             total_loss += float(loss)
             batch_num += 1
 
-            # get logits and use it to calculate perplexity
-            logits = outputs.logits  # shape: (bsz, seq_len, vocab_sz)
-            logits = log_softmax(logits, dim=-1)
-            logits_flatten = logits.view(-1, model.config.vocab_size)  # shape: (bsz * seq_len, vocab_sz)
-
-            N += len(batch_q)  # accumulate the number of validation samples from this batch
-            predicted_prob = logits_flatten[range(logits_flatten.shape[0]), target_ids.view(-1)].view(target_ids.shape)
-            predicted_prob[target_ids < 0] = 0  # zero out paddings, shape: (bsz, seq_len)
-            ppl = - predicted_prob.sum(dim=1) / (target_ids >= 0).sum(dim=1)
-            ppl = torch.exp(ppl)  # ppl for each individual sample in this batch
-            total_ppl += ppl.sum()  # accumulate total ppl
-
         perplexity = np.exp(total_loss / batch_num)
-        perplexity_2 = (total_ppl / N).item()
+        ppl_record.append(perplexity)
         print(f'Perplexity: {perplexity}')
-        print(f'Perplexity (avg): {perplexity_2}')
-        log_file.write(f'Perplexity:{perplexity} ')
-        log_file.write(f'Perplexity_avg:{perplexity_2}\n')
+        log_file.write(f'Perplexity:{perplexity}\n')
 
-# save model
-torch.save(model.state_dict(), SAVE_PATH)
+    SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{epo+1}.pt')
+    # save model after training for one epoch
+    torch.save(model.state_dict(), SAVE_PATH)
+
 # close log file
 log_file.close()
+
+# plot loss and ppl
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
+
+epochs = list(range(NUM_EPOCH))
+ax[0].plot(epochs, loss_record)
+ax[0].set_title('Loss', fontsize=20)
+ax[0].set_xlabel('Epoch', fontsize=15)
+ax[0].set_ylabel('Loss', fontsize=15)
+
+ax[1].plot(epochs, ppl_record)
+ax[1].set_title('Perplexity', fontsize=20)
+ax[1].set_xlabel('Epoch', fontsize=15)
+ax[1].set_ylabel('Perplexity', fontsize=15)
+
+fig.savefig(os.path.join('figures', f'{MODEL_NAME}'))
 
 # load model
 # model = BartForConditionalGeneration()

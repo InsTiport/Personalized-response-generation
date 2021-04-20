@@ -1,4 +1,5 @@
 import argparse
+from matplotlib import pyplot as plt
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers import AdamW
 import torch
@@ -6,6 +7,7 @@ import numpy as np
 import os
 import tqdm
 import sys
+
 sys.path.insert(0, os.path.abspath('..'))
 from interview_dataset import InterviewDataset
 
@@ -76,6 +78,9 @@ optimizer_grouped_parameters = [
 ]
 optimizer = AdamW(optimizer_grouped_parameters, lr=1e-5)
 
+# record these for every epoch
+loss_record = []
+ppl_record = []
 # training loop
 for epo in range(NUM_EPOCH):
     model.train()
@@ -88,8 +93,7 @@ for epo in range(NUM_EPOCH):
     data_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=BATCH_SIZE,
-        shuffle=True,
-        num_workers=0
+        shuffle=True
     )
 
     # training
@@ -103,7 +107,8 @@ for epo in range(NUM_EPOCH):
 
         # input encoding
         input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
-        # prepare labels, by masking out padding tokens (exclude them while computing loss)
+
+        # labels, by masking out padding tokens (exclude them while computing loss)
         labels = input_encoding['input_ids'].detach().clone()
         labels[input_encoding['attention_mask'] == 0] = -100
 
@@ -124,6 +129,7 @@ for epo in range(NUM_EPOCH):
         idx += 1
 
         total_loss += float(loss)
+        loss_record.append(total_loss)
         train_iterator_with_progress.set_description(f'Epoch {epo}')
         train_iterator_with_progress.set_postfix({'Loss': loss.item()})
 
@@ -141,8 +147,7 @@ for epo in range(NUM_EPOCH):
         valid_data_loader = torch.utils.data.DataLoader(
             valid_dataset,
             batch_size=BATCH_SIZE,
-            shuffle=True,
-            num_workers=0
+            shuffle=True
         )
 
         batch_num = 0
@@ -168,15 +173,32 @@ for epo in range(NUM_EPOCH):
             batch_num += 1
 
         perplexity = np.exp(total_loss / batch_num)
+        ppl_record.append(perplexity)
         print(f'Perplexity: {perplexity}')
         log_file.write(f'Perplexity:{perplexity}\n')
 
-    SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{epo+1}_checkpoint.pt')
+    SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{epo+1}.pt')
     # save model after training for one epoch
     torch.save(model.state_dict(), SAVE_PATH)
 
 # close log file
 log_file.close()
+
+# plot loss and ppl
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
+
+epochs = list(range(NUM_EPOCH))
+ax[0].plot(epochs, loss_record)
+ax[0].set_title('Loss', fontsize=20)
+ax[0].set_xlabel('Epoch', fontsize=15)
+ax[0].set_ylabel('Loss', fontsize=15)
+
+ax[1].plot(epochs, ppl_record)
+ax[1].set_title('Perplexity', fontsize=20)
+ax[1].set_xlabel('Epoch', fontsize=15)
+ax[1].set_ylabel('Perplexity', fontsize=15)
+
+fig.savefig(os.path.join('figures', f'{MODEL_NAME}'))
 
 # load model
 # model = BartForConditionalGeneration()
