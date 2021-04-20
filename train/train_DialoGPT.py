@@ -129,10 +129,10 @@ for epo in range(NUM_EPOCH):
         idx += 1
 
         total_loss += float(loss)
-        loss_record.append(total_loss)
         train_iterator_with_progress.set_description(f'Epoch {epo}')
         train_iterator_with_progress.set_postfix({'Loss': loss.item()})
 
+    loss_record.append(total_loss)
     print(f'Loss in epoch {epo}: {total_loss}')
     log_file.write(f'Epoch:{epo} ')
     log_file.write(f'Loss:{total_loss} ')
@@ -161,7 +161,7 @@ for epo in range(NUM_EPOCH):
             # input encoding
             input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
             # prepare labels, by masking out padding tokens (exclude them while computing loss)
-            labels = input_encoding['input_ids']
+            labels = input_encoding['input_ids'].detach().clone()
             labels[input_encoding['attention_mask'] == 0] = -100
 
             # forward pass

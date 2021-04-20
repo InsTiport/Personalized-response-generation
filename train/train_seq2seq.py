@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import torch
 import torch.nn as nn
+from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 import torch.optim as opt
 from tqdm import tqdm
@@ -104,6 +105,9 @@ optimizer = opt.Adam(model.parameters())
 #     num_training_steps=num_training_steps
 # )
 
+# record these for every epoch
+loss_record = []
+ppl_record = []
 # training loop
 for epo in range(NUM_EPOCH):
     model.train()
@@ -174,9 +178,70 @@ for epo in range(NUM_EPOCH):
         train_iterator_with_progress.set_description(f'Epoch {epo}')
         train_iterator_with_progress.set_postfix({'Loss': loss.item()})
 
+    loss_record.append(total_loss)
     print(f'Loss in epoch {epo}: {total_loss}')
     log_file.write(f'Epoch:{epo} ')
-    log_file.write(f'Loss:{total_loss}\n')
+    log_file.write(f'Loss:{total_loss} ')
+
+    # evaluation
+    model.eval()
+    with torch.no_grad():
+        '''
+        DataLoader
+        '''
+        valid_dataset = InterviewDataset(data='dev')
+        valid_data_loader = torch.utils.data.DataLoader(
+            valid_dataset,
+            batch_size=BATCH_SIZE,
+            shuffle=True
+        )
+
+        batch_num = 0
+        total_loss = 0
+        for batch in valid_data_loader:
+            # input encoding
+            input_encoding = tokenizer(batch['question'], return_tensors='pt', padding=True, truncation=True)
+            input_ids = input_encoding['input_ids']
+            input_ids = torch.transpose(input_ids, 0, 1).to(device)  # shape: (input_len, batch_size)
+
+            # target encoding
+            target_encoding = tokenizer(batch['response'], return_tensors='pt', padding=True, truncation=True)
+            target_ids = target_encoding['input_ids']
+            target_ids = torch.transpose(target_ids, 0, 1).to(device)  # shape: (target_len, batch_size)
+
+            # zero-out gradient
+            optimizer.zero_grad()
+
+            # forward pass
+            if args.speaker:
+                speaker_id = [int(s.split('|')[1]) for s in batch['respondent']]
+                speaker_id = torch.tensor(speaker_id, dtype=torch.long).to(device)
+
+                outputs = model(x=input_ids, y=target_ids, speaker_id=speaker_id)
+                # outputs.shape: (target_len, batch_size, vocab_size)
+            else:
+                outputs = model(x=input_ids, y=target_ids)  # outputs.shape: (target_len, batch_size, vocab_size)
+
+            # prepare labels for cross entropy by removing the first time stamp (<s>)
+            labels = target_ids[1:, :]  # shape: (target_len - 1, batch_size)
+            labels = labels.reshape(-1).to(device)  # shape: ((target_len - 1) * batch_size)
+
+            # prepare model predicts for cross entropy by removing the last timestamp and merge first two axes
+            outputs = outputs[:-1, ...]  # shape: (target_len - 1, batch_size, vocab_size)
+            outputs = outputs.reshape(-1, outputs.shape[-1]).to(device)
+            # shape: ((target_len - 1) * batch_size, vocab_size)
+
+            # compute loss and perform a step
+            criterion = nn.CrossEntropyLoss(ignore_index=1)  # ignore padding index
+            loss = criterion(outputs, labels)
+
+            total_loss += float(loss)
+            batch_num += 1
+
+        perplexity = np.exp(total_loss / batch_num)
+        ppl_record.append(perplexity)
+        print(f'Perplexity: {perplexity}')
+        log_file.write(f'Perplexity:{perplexity}\n')
 
     SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{epo+1}.pt')
     # save model after training for one epoch
@@ -184,3 +249,19 @@ for epo in range(NUM_EPOCH):
 
 # close log file
 log_file.close()
+
+# plot loss and ppl
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
+
+epochs = list(range(NUM_EPOCH))
+ax[0].plot(epochs, loss_record)
+ax[0].set_title('Loss', fontsize=20)
+ax[0].set_xlabel('Epoch', fontsize=15)
+ax[0].set_ylabel('Loss', fontsize=15)
+
+ax[1].plot(epochs, ppl_record)
+ax[1].set_title('Perplexity', fontsize=20)
+ax[1].set_xlabel('Epoch', fontsize=15)
+ax[1].set_ylabel('Perplexity', fontsize=15)
+
+fig.savefig(os.path.join('figures', f'{MODEL_NAME}'))
