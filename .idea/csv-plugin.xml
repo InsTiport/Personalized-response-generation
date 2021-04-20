@@ -52,6 +52,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/train/train_seq2seq.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
       </map>
     </option>
   </component>

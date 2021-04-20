@@ -5,250 +5,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from torchtext.data import RawField, TabularDataset, BucketIterator
 import torch.optim as opt
 from tqdm import tqdm
 from transformers import BartTokenizer, get_linear_schedule_with_warmup
-
 sys.path.insert(0, os.path.abspath('..'))
 from interview_dataset import InterviewDataset, InterviewDatasetAlternatives
-
-class Encoder(nn.Module):
-    def __init__(self, vocab_size=50265, embed_size=1024, embedding=None, hidden_size=1024, num_layers=4,
-                 dropout=0.1):
-        super(Encoder, self).__init__()
-
-        self.vocab_size = vocab_size
-        self.embed_size = embed_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-
-        self.embedding = embedding
-        self.dropout = nn.Dropout(p=dropout)
-
-        self.rnn = nn.LSTM(
-            input_size=embed_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            dropout=dropout
-        )
-
-    def forward(self, x):
-        """
-        Parameters
-        ----------
-        x : torch.Tensor (max_seq_len, batch_size)
-            The input batch of sentences
-
-        Returns
-        ---------
-        h_o : torch.Tensor (num_layers, batch_size, hidden_size)
-            hidden state of LSTM at t = max_seq_len
-
-        c_o : torch.Tensor (num_layers, batch_size, hidden_size)
-            cell state of LSTM at t = max_seq_len
-        """
-
-        # embedding layer
-        embed = self.dropout(self.embedding(x))  # embed.shape = (max_seq_len, batch_size, embed_size)
-        # lstm layer
-        lstm_out, (h_o, c_o) = self.rnn(embed)
-
-        return lstm_out, h_o, c_o
-
-
-class Decoder(nn.Module):
-    def __init__(self, vocab_size=50265, embed_size=1024, embedding=None, hidden_size=1024, num_layers=4,
-                 dropout=0.1, use_attention=True, speaker=False, num_speakers=25294, speaker_emb_dim=512):
-        super(Decoder, self).__init__()
-
-        self.vocab_size = vocab_size
-        self.embed_size = embed_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-
-        self.embedding = embedding
-        self.dropout = nn.Dropout(p=dropout)
-        
-        self.use_attention = use_attention
-        
-        self.speaker = speaker
-        self.num_speakers = num_speakers
-        self.speaker_embed_dim = speaker_emb_dim
-
-        if self.speaker:
-            self.speaker_embedding = nn.Embedding(num_embeddings=num_speakers, embedding_dim=speaker_emb_dim)
-            self.rnn = nn.LSTM(
-                input_size=embed_size+speaker_emb_dim,
-                hidden_size=hidden_size,
-                num_layers=num_layers,
-                dropout=dropout
-            )
-        else:
-            self.rnn = nn.LSTM(
-                    input_size=embed_size,
-                    hidden_size=hidden_size,
-                    num_layers=num_layers,
-                    dropout=dropout
-            )
-        
-        self.attention_feed = nn.Linear(in_features=hidden_size, out_features=hidden_size)
-        self.attention_concat = nn.Linear(in_features=2*hidden_size, out_features=hidden_size)
-
-        self.out = nn.Linear(in_features=hidden_size, out_features=vocab_size)
-
-    def forward(self, x, h_i, c_i, encoder_output, attention_mask, speaker_id):
-        """
-        Parameters
-        ----------
-        x : torch.Tensor (seq_len, batch_size)
-            The input batch of words
-
-        h_i : torch.Tensor (num_layers, batch_size, hidden_size)
-            hidden state of LSTM at t - 1
-
-        c_i : torch.Tensor (num_layers, batch_size, hidden_size)
-            cell state of LSTM at t - 1
-
-        encoder_output: torch.Tensor (encoder_seq_len, batch_size, hidden_size)
-            hidden states in the final layer of the encoder
-        
-        attention mask: torch.Tensor (encoder_seq_len, batch_size)
-            boolean tensor indicating the position of padding
-
-        Returns
-        ---------
-        out : torch.Tensor (seq_len, batch_size, vocab_size)
-            Logits
-
-        h_i : torch.Tensor (num_layers, batch_size, hidden_size)
-            hidden state of LSTM at t (current timestamp)
-
-        c_i : torch.Tensor (num_layers, batch_size, hidden_size)
-            cell state of LSTM at t (current timestamp)
-        """
-
-        embed = self.dropout(self.embedding(x))  # embed.shape: (seq_len, batch_size, embed_size)
-        
-        if self.speaker:
-            speaker_emb = self.dropout(self.speaker_embedding(speaker_id)).expand(x.shape[0], -1, -1)
-            lstm_out, (h_o, c_o) = self.rnn(torch.cat((embed, speaker_emb), dim=2), (h_i, c_i))  # lstm_out.shape: (seq_len, batch_size, hidden_size)
-        else:
-            lstm_out, (h_o, c_o) = self.rnn(embed, (h_i, c_i))  # lstm_out.shape: (seq_len, batch_size, hidden_size)
-
-        # soft attention of Luong's style (Luong et al., 2015)
-        if self.use_attention:
-            lstm_out_transformed = self.attention_feed(lstm_out)
-
-            # need to reshape lstm_out_transformed to use bmm
-            # lstm_out_transformed.shape : (batch_size, hidden_size, seq_len)
-            lstm_out_transformed = lstm_out_transformed.permute(1, 2, 0)
-
-            # need to reshape encoder_output to use bmm
-            # encoder_output.shape: (batch_size, encoder_seq_len, hidden_size)
-            encoder_output = encoder_output.permute(1, 0, 2)
-
-            attention_score = torch.bmm(encoder_output, lstm_out_transformed) # attention_score.shape: (batch_size, encoder_seq_len, seq_len)
-            weights = nn.Softmax(dim=1)(attention_score) # weights.shape: (batch_size, encoder_seq_len, seq_len)
-            weighted_sum = torch.sum(encoder_output.unsqueeze(3) * weights.unsqueeze(2), dim=1) # weighted_sum.shape: (batch_size, hidden_size, seq_len)
-            weighted_sum = weighted_sum.permute(2, 0, 1) # reshape weighted_sum to fit the shape of lstm_out
-
-            lstm_out = nn.Tanh()(self.attention_concat(torch.cat((lstm_out, weighted_sum), dim=2)))
-
-        out = self.out(lstm_out)  # out.shape: (seq_len, batch_size, vocab_size)
-
-        return out, h_o, c_o
-
-
-class Seq2Seq(nn.Module):
-    def __init__(self, vocab_size=50265, embed_size=1024, hidden_size=1024, num_layers=2, dropout=0.3, use_attention=True, speaker=False, num_speakers=25294, speaker_emb_dim=256):
-        super(Seq2Seq, self).__init__()
-
-        self.vocab_size = vocab_size
-        self.embed_size = embed_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.use_attention = use_attention
-        self.speaker = speaker
-        self.num_speakers = num_speakers
-        self.speaker_emb_dim = speaker_emb_dim
-
-        '''
-        Special token ids:
-        <bos>: 0
-        <pad>: 1
-        <eos>: 2
-        <unk>: 3
-        '''
-        self.embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embed_size, padding_idx=1)
-
-        self.encoder = Encoder(
-            vocab_size=vocab_size,
-            embed_size=embed_size,
-            embedding=self.embedding,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            dropout=dropout
-        )
-
-        self.decoder = Decoder(
-            vocab_size=vocab_size,
-            embed_size=embed_size,
-            embedding=self.embedding,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            dropout=dropout,
-            use_attention=use_attention,
-            speaker=speaker,
-            num_speakers=num_speakers,
-            speaker_emb_dim=speaker_emb_dim
-        )
-
-    def forward(self, x, y=None, speaker_id=None, train=False):
-        """
-        Parameters
-        ----------
-        x : torch.Tensor (max_input_seq_len, batch_size)
-            The input batch of questions
-
-        y : torch.Tensor (max_output_seq_len, batch_size)
-            The input batch of gold responses
-
-        train : bool
-            If true, will use gold responses as inputs to the decoder
-
-        Returns
-        ---------
-        if train:
-            torch.Tensor (max_output_seq_len, batch_size, vocab_size)
-                The predicted logits
-        else:
-            skip for now
-        """
-        bsz = x.shape[1]
-
-        encoder_output, h, c = self.encoder(x)  # use encoder hidden/cell states for decoder
-
-        if train:
-            max_output_seq_len = y.shape[0]
-                
-            logits, h, c = self.decoder(y, h, c, encoder_output, None, speaker_id) #logits.shape: (max_output_seq_len, batch_size, vocab_size)
-
-            return logits
-
-            # for t in range(max_output_seq_len):
-            #     # decoder inputs
-            #     decoder_in = y[t].unsqueeze(0)  # shape: (1, batch_size)
-
-            #     # decode one step
-            #     decoder_out, h, c = self.decoder(decoder_in, h, c)  # decoder_out.shape: (batch_size, vocab_size)
-
-            #     # store logits
-            #     logits[t] = decoder_out
-
-            # return logits
-        else:
-            pass
+from model.Seq2Seq import Seq2Seq
 
 
 # setup args
@@ -302,29 +64,17 @@ control and logging
 torch.manual_seed(0)
 np.random.seed(0)
 # model saving and logging paths
+os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
 if args.speaker:
-    MODEL_NAME = f'speaker_{NUM_EPOCH}_bsz_{BATCH_SIZE}'
+    MODEL_NAME = f'speaker_bsz_{BATCH_SIZE}'
 else:
-    MODEL_NAME = f'seq2seq_{NUM_EPOCH}_bsz_{BATCH_SIZE}'
-os.makedirs(os.path.dirname('model' + '/'), exist_ok=True)
-SAVE_PATH = os.path.join('model', f'{MODEL_NAME}.pt')
-log_file = open(os.path.join('model', f'{MODEL_NAME}.log'), 'w')
+    MODEL_NAME = f'seq2seq_bsz_{BATCH_SIZE}'
+log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.log'), 'w')
 
 if args.speaker:
-    print(f'Training sequence2sequence model with speaker embeddings for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
+    print(f'Training speaker model for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
 else:
-    print(f'Training sequence2sequence model for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
-
-'''
-load dataset
-'''
-dataset_train = InterviewDatasetAlternatives(data='train')
-dataset_dev = InterviewDatasetAlternatives(data='dev')
-dataset_test = InterviewDatasetAlternatives(data='test')
-
-dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, shuffle=True)
-dataloader_dev = DataLoader(dataset_dev, batch_size=BATCH_SIZE, shuffle=True)
-dataloader_test = DataLoader(dataset_test, batch_size=BATCH_SIZE, shuffle=True)
+    print(f'Training Seq2Seq model for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
 
 '''
 model and tokenizer
@@ -335,7 +85,7 @@ if device == 'cuda':
     torch.cuda.set_device(DEVICE_ID)  # use an unoccupied GPU
 # load model
 if args.speaker:
-    model = Seq2Seq(speaker=True).to(device)
+    model = Seq2Seq(use_speaker=True).to(device)
 else:
     model = Seq2Seq().to(device)
 
@@ -347,39 +97,54 @@ optimizer
 '''
 optimizer = opt.Adam(model.parameters())
 
-num_training_steps = (int(len(dataset_train) / BATCH_SIZE) + 1) * NUM_EPOCH
-scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=int(0.01*num_training_steps), num_training_steps=num_training_steps)
+# num_training_steps = (int(len(dataset_train) / BATCH_SIZE) + 1) * NUM_EPOCH
+# scheduler = get_linear_schedule_with_warmup(
+#     optimizer,
+#     num_warmup_steps=int(0.01*num_training_steps),
+#     num_training_steps=num_training_steps
+# )
 
 # training loop
 for epo in range(NUM_EPOCH):
     model.train()
     total_loss = 0
 
+    '''
+    DataLoader
+    '''
+    dataset = InterviewDataset()
+    data_loader = torch.utils.data.DataLoader(
+        dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True
+    )
+
     # training
-    train_iterator_with_progress = tqdm(dataloader_train)
+    train_iterator_with_progress = tqdm(data_loader)
     idx = 0
     for batch in train_iterator_with_progress:
         # input encoding
         input_encoding = tokenizer(batch['question'], return_tensors='pt', padding=True, truncation=True)
         input_ids = input_encoding['input_ids']
-        input_ids = torch.transpose(input_ids, 0, 1).to(device)  # need reshape to satisfy model input format
+        input_ids = torch.transpose(input_ids, 0, 1).to(device)  # shape: (input_len, batch_size)
 
         # target encoding
         target_encoding = tokenizer(batch['response'], return_tensors='pt', padding=True, truncation=True)
         target_ids = target_encoding['input_ids']
-        target_ids = torch.transpose(target_ids, 0, 1).to(device)  # need reshape to satisfy model input format
-
-        speaker_id = [int(s.split('|')[1]) for s in batch['respondent']]
-        speaker_id = torch.tensor(speaker_id, dtype=torch.long).to(device)
+        target_ids = torch.transpose(target_ids, 0, 1).to(device)  # shape: (target_len, batch_size)
 
         # zero-out gradient
         optimizer.zero_grad()
 
         # forward pass
         if args.speaker:
-            outputs = model(x=input_ids, y=target_ids, speaker_id=speaker_id, train=True)  # outputs.shape: (target_len, batch_size, vocab_size)
+            speaker_id = [int(s.split('|')[1]) for s in batch['respondent']]
+            speaker_id = torch.tensor(speaker_id, dtype=torch.long).to(device)
+
+            outputs = model(x=input_ids, y=target_ids, speaker_id=speaker_id)
+            # outputs.shape: (target_len, batch_size, vocab_size)
         else:
-            outputs = model(x=input_ids, y=target_ids, train=True)  # outputs.shape: (target_len, batch_size, vocab_size)
+            outputs = model(x=input_ids, y=target_ids)  # outputs.shape: (target_len, batch_size, vocab_size)
 
         # prepare labels for cross entropy by removing the first time stamp (<s>)
         labels = target_ids[1:, :]  # shape: (target_len - 1, batch_size)
@@ -387,13 +152,16 @@ for epo in range(NUM_EPOCH):
 
         # prepare model predicts for cross entropy by removing the last timestamp and merge first two axes
         outputs = outputs[:-1, ...]  # shape: (target_len - 1, batch_size, vocab_size)
-        outputs = outputs.reshape(-1, outputs.shape[-1]).to(device)  # shape: ((target_len - 1) * batch_size, vocab_size)
+        outputs = outputs.reshape(-1, outputs.shape[-1]).to(device)
+        # shape: ((target_len - 1) * batch_size, vocab_size)
 
         # compute loss and perform a step
-        criterion = nn.CrossEntropyLoss().to(device)
+        criterion = nn.CrossEntropyLoss(ignore_index=1)  # ignore padding index
         loss = criterion(outputs, labels)
+
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm) # gradient clipping
+
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=args.max_grad_norm)  # gradient clipping
         optimizer.step()
         # scheduler.step()
 
@@ -409,12 +177,10 @@ for epo in range(NUM_EPOCH):
     print(f'Loss in epoch {epo}: {total_loss}')
     log_file.write(f'Epoch:{epo} ')
     log_file.write(f'Loss:{total_loss}\n')
-    
-    path = os.path.join('model', f'{MODEL_NAME}_epoch_{epo}.pt')
-    torch.save(model.state_dict(), path)
 
+    SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{epo+1}_checkpoint.pt')
+    # save model after training for one epoch
+    torch.save(model.state_dict(), SAVE_PATH)
 
-# save model
-torch.save(model.state_dict(), SAVE_PATH)
 # close log file
 log_file.close()

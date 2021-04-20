@@ -1,5 +1,4 @@
 import argparse
-from torch.nn.functional import log_softmax
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers import AdamW
 import torch
@@ -39,7 +38,6 @@ os.chdir('../')
 hyper-parameter 
 '''
 DEVICE_ID = args.gpu  # adjust this to use an unoccupied GPU
-# BATCH_SIZE = args.batch
 BATCH_SIZE = args.batch
 NUM_EPOCH = args.epoch
 
@@ -54,7 +52,7 @@ os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
 MODEL_NAME = f'dialogpt-small_bsz_{BATCH_SIZE}'
 log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.log'), 'w')
 
-print(f'Training for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
+print(f'Training DialoGPT for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
 
 '''
 model and tokenizer
@@ -171,7 +169,7 @@ for epo in range(NUM_EPOCH):
 
         perplexity = np.exp(total_loss / batch_num)
         print(f'Perplexity: {perplexity}')
-        log_file.write(f'Perplexity:{perplexity} ')
+        log_file.write(f'Perplexity:{perplexity}\n')
 
     SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{epo+1}_checkpoint.pt')
     # save model after training for one epoch
