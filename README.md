@@ -10,7 +10,7 @@ Also, there is a `Dataset` class implemented in `interview_dataset.py` (in the p
 See the [Data](#data) section for details.
 
 ### Train
-Right now, only training (fine-tuning) for BART is supported. See the [Training](#training-and-evaluating-models) section for details.
+Right now, training for BART, DialoGPT, Seq2Seq and Speaker model is supported. See the [Training](#training-and-evaluating-models) section for details.
 
 ## Data
 
@@ -96,14 +96,21 @@ python link_game_background.py
 This script requires `game_search_result` and `section_search_result` which are loacted in `data/`. This script will scrape and assign an index for each wikipedia page and then it appends two columns at the end of `*_episode.csv` indicating the index of the background wikipedia pages.
 
 ## Training and Evaluating Models
-### Training BART-base
-Inside `training`, run:
+
+### General training guideline
+Scripts for training are located in `train`, and training result will be located in `model_weights`.
+
+Training result consists of model weight files and logging file. The naming convention of model weight files is `[model_name]_bsz_[#]_epoch_[#].pt` and the naming convention of logging file is `[model_name]_bsz_[#].log`. Unlike logging file, which will be one single file per training, model weights will be saved after each epoch. Hence, suppose you train one model for 5 epochs, you will have 5 model weight files and one logging file in the end.
+
+Also, after training, there will be a `.png` file saved to `figures`, which plots loss and perplexity.
+
+### Training BART
 
 ```python
 python train_BART.py -e [epoch] -b [batch size]
 ```
 
-Arguments of these scripts:
+Arguments:
 
 `--gpu`: which gpu to use, with default value 0
 
@@ -111,9 +118,38 @@ Arguments of these scripts:
 
 `-b`: batch size, with default value 2
 
-The model weights and logging info will be saved to `model_weights`.
+### Training DialoGPT
 
-### Evaluating trained BART-base
+```python
+python train_DialoGPT.py -e [epoch] -b [batch size]
+```
+
+Arguments:
+
+`--gpu`: which gpu to use, with default value 0
+
+`-e`: number of epochs, with default value 5
+
+`-b`: batch size, with default value 1
+
+### Training Seq2Seq/Speaker
+
+```python
+python train_seq2seq.py -e [epoch] -b [batch size]
+```
+Arguments:
+
+`-s`: toggle to train speaker model instead of Seq2Seq
+
+`--gpu`: which gpu to use, with default value 0
+
+`-e`: number of epochs, with default value 5
+
+`-b`: batch size, with default value 2
+
+`--max_grad_norm`: gradient clipping, with default value 1
+
+### NEED UPDATE Evaluating trained BART
 Get the trained model [here](https://drive.google.com/drive/folders/12wZvtyhnTpjQEqjKljWio8bQh4syt6io?usp=sharing). To use this model, download `bart-base_epoch_10_bsz_2_small_utterance.pt` to `model`.
 
 To evaluate this particular trained model, inside `training`, run:
