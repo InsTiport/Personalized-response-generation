@@ -74,7 +74,6 @@ class Decoder(nn.Module):
         if use_attention:
             self.softmax = nn.Softmax(dim=1)
             self.tanh = nn.Tanh()
-            self.attention_feed = nn.Linear(in_features=hidden_size, out_features=hidden_size)
             self.attention_concat = nn.Linear(in_features=2*hidden_size, out_features=hidden_size)
 
         # speaker model
@@ -101,13 +100,13 @@ class Decoder(nn.Module):
 
         self.out = nn.Linear(in_features=hidden_size, out_features=vocab_size)
 
-    def forward(self, x, h_i, c_i, encoder_output, attention_mask, speaker_id=None):
+    def forward(self, x, h_i, c_i, encoder_output, attention_mask, speaker_id=None, train=True):
         """
         Generate the logits and current hidden state at one timestamp t
 
         Parameters
         ----------
-        x : torch.Tensor (1, batch_size)
+        x : torch.Tensor (decoder_seq_len, batch_size) if train is True else (1, batch_size)
             The input batch of words
 
         h_i : torch.Tensor (num_layers, batch_size, hidden_size)
@@ -125,9 +124,12 @@ class Decoder(nn.Module):
         speaker_id : int (Optional)
             Id of speaker used in speaker model
 
+        train : bool
+            If train is True, then will pass gold responses instead of one word
+
         Returns
         ---------
-        logits : torch.Tensor (batch_size, vocab_size)
+        logits : torch.Tensor (decoder_seq_len, batch_size, vocab_size) if train is True else (batch_size, vocab_size)
             Un-normalized logits
 
         h_i : torch.Tensor (num_layers, batch_size, hidden_size)
@@ -137,43 +139,65 @@ class Decoder(nn.Module):
             cell state of LSTM at t (current timestamp)
         """
 
-        embed = self.dropout(self.embedding(x))  # embed.shape: (1, batch_size, embed_size)
+        embed = self.dropout(self.embedding(x))  # embed.shape: (decoder_seq_len or 1, batch_size, embed_size)
 
         if self.use_speaker:
             speaker_emb = self.dropout(self.speaker_embedding(speaker_id)).expand(x.shape[0], -1, -1)
             lstm_out, (h_o, c_o) = self.rnn(torch.cat((embed, speaker_emb), dim=2), (h_i, c_i))
-            # lstm_out.shape: (1, batch_size, hidden_size) is h_t
+            # lstm_out.shape: (decoder_seq_len or 1, batch_size, hidden_size) (h_t)
         else:
             lstm_out, (h_o, c_o) = self.rnn(embed, (h_i, c_i))
-            # lstm_out.shape: (1, batch_size, hidden_size) is h_t
+            # lstm_out.shape: (decoder_seq_len or 1, batch_size, hidden_size) (h_t)
 
         # dot attention of Luong's style (Luong et al., 2015)
         if self.use_attention:
-            lstm_out_transformed = self.attention_feed(lstm_out)
+            if train:
+                # need to reshape lstm_out_transformed to use bmm
+                # lstm_out_transformed.shape : (batch_size, hidden_size, decoder_seq_len)
+                lstm_out_transformed = lstm_out.permute(1, 2, 0)
 
-            # need to reshape lstm_out_transformed to use bmm
-            # lstm_out_transformed.shape : (batch_size, hidden_size, 1)
-            lstm_out_transformed = lstm_out_transformed.permute(1, 2, 0)
+                # need to reshape encoder_output to use bmm
+                # encoder_output.shape: (batch_size, encoder_seq_len, hidden_size)
+                encoder_output = encoder_output.permute(1, 0, 2)
 
-            # need to reshape encoder_output to use bmm
-            # encoder_output.shape: (batch_size, encoder_seq_len, hidden_size)
-            encoder_output = encoder_output.permute(1, 0, 2)
+                # attention score and weight
+                attention_score = torch.bmm(encoder_output, lstm_out_transformed)
+                # attention_score.shape: (batch_size, encoder_seq_len, decoder_seq_len)
+                attention_score[attention_mask.transpose(0, 1)] = 1e-10
+                weights = self.softmax(attention_score)  # shape: (batch_size, encoder_seq_len, decoder_seq_len)
 
-            # attention score and weight
-            attention_score = torch.bmm(encoder_output, lstm_out_transformed)
-            # attention_score.shape: (batch_size, encoder_seq_len, 1)
-            attention_score[attention_mask.transpose(0, 1).unsqueeze(2)] = 1e-10
-            weights = self.softmax(attention_score)  # shape: (batch_size, encoder_seq_len, 1)
+                # weighted sum of encoder hidden states to get context c_t
+                weighted_sum = torch.einsum('bnm,bnd->mbd', weights, encoder_output)
+                # weighted_sum.shape: (decoder_seq_len, batch_size, hidden_size)
 
-            # weighted sum of encoder hidden states to get context c_t
-            weighted_sum = torch.sum(encoder_output * weights, dim=1)  # shape: (batch_size, hidden_size)
-            weighted_sum = weighted_sum.unsqueeze(0)  # shape: (1, batch_size, hidden_size)
+                # concatenate context c_t with h_t to get (h_t)~
+                lstm_out = self.tanh(self.attention_concat(torch.cat((lstm_out, weighted_sum), dim=2)))
+                # lstm_out.shape: (decoder_seq_len, batch_size, hidden_size)
+            else:
+                # need to reshape lstm_out_transformed to use bmm
+                # lstm_out_transformed.shape : (batch_size, hidden_size, 1)
+                lstm_out_transformed = lstm_out.permute(1, 2, 0)
 
-            # concatenate context c_t with h_t to get (h_t)~
-            lstm_out = self.tanh(self.attention_concat(torch.cat((lstm_out, weighted_sum), dim=2)))
-            # lstm_out.shape: (1, batch_size, hidden_size)
+                # need to reshape encoder_output to use bmm
+                # encoder_output.shape: (batch_size, encoder_seq_len, hidden_size)
+                encoder_output = encoder_output.permute(1, 0, 2)
 
-        logits = self.out(self.dropout(lstm_out)).squeeze()  # shape: (batch_size, vocab_size)
+                # attention score and weight
+                attention_score = torch.bmm(encoder_output, lstm_out_transformed)
+                # attention_score.shape: (batch_size, encoder_seq_len, 1)
+                attention_score[attention_mask.transpose(0, 1).unsqueeze(2)] = 1e-10
+                weights = self.softmax(attention_score)  # shape: (batch_size, encoder_seq_len, 1)
+
+                # weighted sum of encoder hidden states to get context c_t
+                weighted_sum = torch.sum(encoder_output * weights, dim=1)  # shape: (batch_size, hidden_size)
+                weighted_sum = weighted_sum.unsqueeze(0)  # shape: (1, batch_size, hidden_size)
+
+                # concatenate context c_t with h_t to get (h_t)~
+                lstm_out = self.tanh(self.attention_concat(torch.cat((lstm_out, weighted_sum), dim=2)))
+                # lstm_out.shape: (1, batch_size, hidden_size)
+
+        logits = self.out(self.dropout(lstm_out)).squeeze()
+        # shape: (batch_size, vocab_size) or (decoder_seq_len, batch_size, vocab_size) if train
 
         return logits, h_o, c_o
 
@@ -256,24 +280,8 @@ class Seq2Seq(nn.Module):
         # attention_mask.shape: (max_input_seq_len, batch_size)
 
         if y is not None:
-            max_output_seq_len = y.shape[0]
-            logits = torch.zeros(max_output_seq_len, bsz, self.vocab_size).to(x.device)  # will store logits
-            for t in range(max_output_seq_len):
-                # decoder inputs
-                decoder_in = y[t].unsqueeze(0)  # shape: (1, batch_size)
-
-                # decode one step
-                decoder_out, h, c = self.decoder(decoder_in, h, c, encoder_output, attention_mask)
-                # decoder_out.shape: (batch_size, vocab_size)
-
-                # store logits
-                logits[t] = decoder_out
+            logits, _, _ = self.decoder(y, h, c, encoder_output, attention_mask)
 
             return logits
-
-            # logits, h, c = self.decoder(y, h, c, encoder_output, None, speaker_id)
-            # logits.shape: (max_output_seq_len, batch_size, vocab_size)
-            #
-            # return logits
         else:
             pass
