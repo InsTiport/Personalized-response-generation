@@ -157,7 +157,11 @@ with torch.no_grad():
         target_ids = torch.transpose(target_ids, 0, 1).to(device)  # shape: (target_len, batch_size)
 
         # # forward pass
-        outputs = model(x=input_ids, y=target_ids)  # outputs.shape: (target_len, batch_size, vocab_size)
+        speaker_id = [int(s.split('|')[1]) for s in batch['respondent']]
+        speaker_id = torch.tensor(speaker_id, dtype=torch.long).to(device)
+
+        outputs = model(x=input_ids, y=target_ids, speaker_id=speaker_id)
+        # outputs.shape: (target_len, batch_size, vocab_size)
 
         # prepare labels for cross entropy by removing the first time stamp (<s>)
         labels = target_ids[1:, :]  # shape: (target_len - 1, batch_size)
