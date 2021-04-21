@@ -156,9 +156,14 @@ for epo in range(NUM_EPOCH):
         for batch in valid_data_loader:
             batch_q = batch['question']
             batch_r = batch['response']
+            batch_sw = batch['section_wiki']
+            batch_gw = batch['game_wiki']
+
+            inputs = [q + tokenizer.sep_token + s + tokenizer.sep_token + g
+                      for q, s, g in zip(batch_q, batch_sw, batch_gw)]
 
             # input encoding
-            input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True).to(device)
+            input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
 
             # target encoding
             target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
