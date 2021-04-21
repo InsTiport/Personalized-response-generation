@@ -37,7 +37,7 @@ if len(downloaded) < len(title2index):
             wiki_page = wiki_wiki.page(title)
         with open(os.path.join('data', 'wiki', str(wiki_index)), 'w') as wiki_file:
             # print(wiki_page.text)
-            wiki_file.writelines(wiki_page.text)
+            wiki_file.writelines(wiki_page.text.replace('\u2013', ''))
 print('Finished downloading wiki.')
 
 
