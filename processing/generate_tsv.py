@@ -66,7 +66,7 @@ with open(os.path.join('data', 'interview.txt'), 'r') as r:
                     w.write(f'{respondent} | {player2index[respondent_with_sport_type]}\t')
                     w.write(f'{question}\t')
                     w.write(f'{response}\n')
-        print(len(player2index))
+        print(f'There are {len(player2index)} unique players.')
 
 print('generating train, dev and test splits...')
 with open(os.path.join('data', 'interview_qa.tsv'), 'r') as r:
