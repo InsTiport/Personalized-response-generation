@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from model.BeamSearch import greedy_search
 
 
 class Encoder(nn.Module):
@@ -251,8 +252,11 @@ class Seq2Seq(nn.Module):
             speaker_emb_dim=speaker_emb_dim
         )
 
-    def forward(self, x, y=None, speaker_id=None):
+    def forward(self, x, y, speaker_id=None):
         """
+        This method is used to train the model, hence it assumes the presence of gold responses (:y:)
+        If you want to use the model in generation, use self.generate() instead
+
         Parameters
         ----------
         x : torch.Tensor (max_input_seq_len, batch_size)
@@ -260,28 +264,53 @@ class Seq2Seq(nn.Module):
 
         y : torch.Tensor (max_output_seq_len, batch_size)
             The input batch of gold responses
-            If present, will use this as input to the decoder
 
         speaker_id : int (Optional)
             Id of speaker used in speaker model
 
         Returns
         ---------
-        if y:
-            torch.Tensor (max_output_seq_len, batch_size, vocab_size)
-                The predicted logits
-        else:
-            skip for now
+        torch.Tensor (max_output_seq_len, batch_size, vocab_size)
+            The predicted logits
+
         """
-        bsz = x.shape[1]
+        self.encoder.train()
+        self.decoder.train()
 
         encoder_output, attention_mask, h, c = self.encoder(x)  # use encoder hidden/cell states for decoder
         # encoder_output.shape: (max_input_seq_len, batch_size, hidden_size)
         # attention_mask.shape: (max_input_seq_len, batch_size)
 
-        if y is not None:
-            logits, _, _ = self.decoder(y, h, c, encoder_output, attention_mask)
+        logits, _, _ = self.decoder(y, h, c, encoder_output, attention_mask)
 
-            return logits
-        else:
-            pass
+        return logits
+
+    def generate(self, x, speaker_id=None):
+        """
+        This method is used for conditional generation
+
+        Parameters
+        ----------
+        x : torch.Tensor (max_input_seq_len, 1)
+            The input batch of questions
+
+        speaker_id : int (Optional)
+            Id of speaker used in speaker model
+
+        Returns
+        ---------
+        list
+            The generated list of tokens
+
+        """
+        self.encoder.eval()
+        self.decoder.eval()
+
+        encoder_output, attention_mask, h, c = self.encoder(x)  # use encoder hidden/cell states for decoder
+        # encoder_output.shape: (max_input_seq_len, 1, hidden_size)
+        # attention_mask.shape: (max_input_seq_len, 1)
+
+        # list of tokens
+        generated_ids = greedy_search(self.decoder, encoder_output, attention_mask, h, c, speaker_id=speaker_id)
+
+        return generated_ids

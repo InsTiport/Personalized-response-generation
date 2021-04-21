@@ -9,3 +9,4 @@ non_English_interviews.txt
 *.ev
 data/
 figures/
+model_weights/

@@ -4,10 +4,12 @@ import sys
 import datasets
 import numpy as np
 import torch
+from torch import nn
 from tqdm import tqdm
-from transformers import BartForConditionalGeneration, BartTokenizer
+from transformers import BartTokenizer
 sys.path.insert(0, os.path.abspath('..'))
 from interview_dataset import InterviewDataset
+from model.Seq2Seq import Seq2Seq
 
 # setup args
 arg_parser = argparse.ArgumentParser()
@@ -27,38 +29,52 @@ arg_parser.add_argument(
 )
 
 arg_parser.add_argument(
-    '--num_beams',
+    '-b', '--batch_size',
     type=int,
-    default=1,
-    help=f'Beam search size, with 1 being greedy decoding'
+    default=5,
+    help='Specify the batch size of the model while it was trained'
 )
 
 arg_parser.add_argument(
-    '-s', '--sampling',
-    action='store_true',
-    help=f'Whether to use sampling methods'
-)
-
-arg_parser.add_argument(
-    '--temperature',
-    type=float,
-    default=1.,
-    help=f'Temperature for beam search'
-)
-
-arg_parser.add_argument(
-    '--top_k',
+    '-e', '--epoch',
     type=int,
-    default=50,
-    help=f'Top-k sampling'
+    default=3,
+    help='Specify which epoch\'s checkpoint to use'
 )
 
-arg_parser.add_argument(
-    '--top_p',
-    type=float,
-    default=1.,
-    help=f'Top-p nucleus sampling'
-)
+# arg_parser.add_argument(
+#     '--num_beams',
+#     type=int,
+#     default=1,
+#     help=f'Beam search size, with 1 being greedy decoding'
+# )
+#
+# arg_parser.add_argument(
+#     '-s', '--sampling',
+#     action='store_true',
+#     help=f'Whether to use sampling methods'
+# )
+#
+# arg_parser.add_argument(
+#     '--temperature',
+#     type=float,
+#     default=1.,
+#     help=f'Temperature for beam search'
+# )
+#
+# arg_parser.add_argument(
+#     '--top_k',
+#     type=int,
+#     default=50,
+#     help=f'Top-k sampling'
+# )
+#
+# arg_parser.add_argument(
+#     '--top_p',
+#     type=float,
+#     default=1.,
+#     help=f'Top-p nucleus sampling'
+# )
 
 args = arg_parser.parse_args()
 os.chdir('../')
@@ -68,23 +84,23 @@ hyper-parameter and generation specifications
 '''
 DEVICE_ID = args.gpu  # adjust this to use an unoccupied GPU
 EVAL_BATCH_SIZE = args.eval_batch_size
-MODEL_NAME = f'bart-base_epoch_10_bsz_2_small_utterance'
+MODEL_NAME = f'seq2seq_bsz_{args.batch_size}_epoch_{args.epoch}'
 
-# specifications
-r'''MAX_LEN = default value: max length of model input'''
-r'''MIN_LEN = default value: 10'''
-
-# beam search specification (using early stopping)
-use_beam = not args.sampling
-num_beams = args.num_beams  # 1 means greedy decoding (no beam search)
-
-# sampling-based method specification (change use_beam to False if use these methods)
-temperature = args.temperature  # default: 1
-top_p = args.top_p  # default: 1.
-top_k = args.top_k  # default: 50
-
-# stick to 1 for now
-num_return_sentences = 1
+# # specifications
+# r'''MAX_LEN = default value: max length of model input'''
+# r'''MIN_LEN = default value: 10'''
+#
+# # beam search specification (using early stopping)
+# use_beam = not args.sampling
+# num_beams = args.num_beams  # 1 means greedy decoding (no beam search)
+#
+# # sampling-based method specification (change use_beam to False if use these methods)
+# temperature = args.temperature  # default: 1
+# top_p = args.top_p  # default: 1.
+# top_k = args.top_k  # default: 50
+#
+# # stick to 1 for now
+# num_return_sentences = 1
 
 
 '''
@@ -102,7 +118,7 @@ if device == 'cuda':
 
 # load model
 SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}.pt')
-model = BartForConditionalGeneration.from_pretrained('facebook/bart-base').to(device)
+model = Seq2Seq().to(device)
 model.load_state_dict(torch.load(SAVE_PATH, map_location=device))
 
 model.eval()
@@ -130,49 +146,51 @@ with torch.no_grad():
     batch_num = 0
     total_loss = 0
     for batch in tqdm(test_data_loader):
-        batch_q = batch['question']
-        batch_r = batch['response']
-
         # input encoding
-        input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True).to(device)
+        input_encoding = tokenizer(batch['question'], return_tensors='pt', padding=True, truncation=True)
+        input_ids = input_encoding['input_ids']
+        input_ids = torch.transpose(input_ids, 0, 1).to(device)  # shape: (input_len, batch_size)
 
         # target encoding
-        target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
-        target_ids = target_encoding['input_ids'].to(device)
-        target_ids[target_ids == model.config.pad_token_id] = -100
+        target_encoding = tokenizer(batch['response'], return_tensors='pt', padding=True, truncation=True)
+        target_ids = target_encoding['input_ids']
+        target_ids = torch.transpose(target_ids, 0, 1).to(device)  # shape: (target_len, batch_size)
 
         # forward pass
-        outputs = model(**input_encoding, labels=target_ids)
+        if args.speaker:
+            speaker_id = [int(s.split('|')[1]) for s in batch['respondent']]
+            speaker_id = torch.tensor(speaker_id, dtype=torch.long).to(device)
 
-        # loss
-        loss = outputs.loss
+            outputs = model(x=input_ids, y=target_ids, speaker_id=speaker_id)
+            # outputs.shape: (target_len, batch_size, vocab_size)
+        else:
+            outputs = model(x=input_ids, y=target_ids)  # outputs.shape: (target_len, batch_size, vocab_size)
+
+        # prepare labels for cross entropy by removing the first time stamp (<s>)
+        labels = target_ids[1:, :]  # shape: (target_len - 1, batch_size)
+        labels = labels.reshape(-1).to(device)  # shape: ((target_len - 1) * batch_size)
+
+        # prepare model predicts for cross entropy by removing the last timestamp and merge first two axes
+        outputs = outputs[:-1, ...]  # shape: (target_len - 1, batch_size, vocab_size)
+        outputs = outputs.reshape(-1, outputs.shape[-1]).to(device)
+        # shape: ((target_len - 1) * batch_size, vocab_size)
+
+        # compute loss and perform a step
+        criterion = nn.CrossEntropyLoss(ignore_index=1)  # ignore padding index
+        loss = criterion(outputs, labels)
+
         total_loss += float(loss)
-
         batch_num += 1
 
         # generation
-        if use_beam:
-            model_res_ids = model.generate(
-                input_encoding['input_ids'],
-                max_length=model.config.max_position_embeddings,
-                num_beams=num_beams,
-                early_stopping=True,
-                num_return_sequences=num_return_sentences
-            )
-        else:
-            model_res_ids = model.generate(
-                input_encoding['input_ids'],
-                max_length=model.config.max_position_embeddings,
-                do_sample=True,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                num_return_sequences=num_return_sentences
-            )
+        input_ids = torch.transpose(input_ids, 0, 1)  # shape: (batch_size, max_question_len)
+        model_res_ids = []
+        for question in input_ids:
+            model_res_ids.append(model.generate(question))
 
         # add generated responses and gold responses for future BLEU computation
         predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids]
-        references = [[r] for r in batch_r]
+        references = [[r] for r in batch['response']]
         metric_bleu.add_batch(predictions=predictions, references=references)
         metric_BERTScore.add_batch(predictions=predictions, references=references)
 
@@ -188,13 +206,6 @@ with torch.no_grad():
     print(f'BertScore: {torch.mean(torch.tensor(score_bert_score["f1"]))}')
     # write results to file
     log_file.write(f'eval_bsz:{EVAL_BATCH_SIZE} ')
-    log_file.write(f'use_beam_search:{use_beam} ')
-    if use_beam:
-        log_file.write(f'beam_size:{num_beams} ')
-    else:
-        log_file.write(f'temperature:{temperature} ')
-        log_file.write(f'p:{top_p} ')
-        log_file.write(f'k:{top_k} ')
     log_file.write(f'perplexity:{round(perplexity, 2)} ')
     log_file.write(f'BLEU:{round(score_bleu["score"], 1)} ')
     log_file.write(f'BertScore:{torch.mean(torch.tensor(score_bert_score["f1"]))}\n')  # average F-1 of BERTScore
@@ -209,7 +220,7 @@ with torch.no_grad():
 
 # compare some predictions with gold responses
 print('last batch: ')
-batch_q = [q.replace('\u2011', '') for q in batch_q]
+batch_q = [q.replace('\u2011', '') for q in batch['question']]
 predictions = [p.replace('\u2011', '') for p in predictions]
 references = [r[0].replace('\u2011', '') for r in references]
 print_len = EVAL_BATCH_SIZE // 2  # print these number of predictions

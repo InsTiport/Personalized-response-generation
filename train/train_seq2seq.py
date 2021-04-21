@@ -209,9 +209,6 @@ for epo in range(NUM_EPOCH):
             target_ids = target_encoding['input_ids']
             target_ids = torch.transpose(target_ids, 0, 1).to(device)  # shape: (target_len, batch_size)
 
-            # zero-out gradient
-            optimizer.zero_grad()
-
             # forward pass
             if args.speaker:
                 speaker_id = [int(s.split('|')[1]) for s in batch['respondent']]
