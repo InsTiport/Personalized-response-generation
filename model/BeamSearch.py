@@ -7,7 +7,7 @@ def greedy_search(decoder, encoder_output, attention_mask, h, c, speaker_id=None
 
     res = [bos_token]
     for _ in range(max_length):
-        decoder_input = encoder_output.new_full((1, 1), cur_token)
+        decoder_input = encoder_output.new_full((1, 1), cur_token, dtype=torch.long)
 
         logits, h, c = decoder(decoder_input, h, c, encoder_output, attention_mask, speaker_id=speaker_id, train=False)
         # logits.shape: (1, vocab_size)
