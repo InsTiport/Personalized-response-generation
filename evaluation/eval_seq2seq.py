@@ -186,7 +186,7 @@ with torch.no_grad():
         input_ids = torch.transpose(input_ids, 0, 1)  # shape: (batch_size, max_question_len)
         model_res_ids = []
         for question in input_ids:
-            model_res_ids.append(model.generate(question))
+            model_res_ids.append(model.generate(question.reshape(-1, 1)))
 
         # add generated responses and gold responses for future BLEU computation
         predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids]
