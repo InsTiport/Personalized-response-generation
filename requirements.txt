@@ -1,6 +1,6 @@
 requests~=2.25.1
 beautifulsoup4~=4.9.3
-tqdm
+tqdm~=4.56.2
 numpy~=1.20.0
 pandas~=1.2.2
 spacy~=3.0.3
@@ -14,3 +14,4 @@ sacrebleu~=1.5.1
 bert_score~=0.3.8
 matplotlib~=3.3.4
 wikipedia_api
+scikit-learn
