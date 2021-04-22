@@ -170,6 +170,7 @@ with torch.no_grad():
         if use_beam:
             model_res_ids = model.generate(
                 input_encoding['input_ids'],
+                pad_token_id=tokenizer.eos_token_id,
                 max_length=model.config.max_position_embeddings,
                 num_beams=num_beams,
                 early_stopping=True,
@@ -178,6 +179,7 @@ with torch.no_grad():
         else:
             model_res_ids = model.generate(
                 input_encoding['input_ids'],
+                pad_token_id=tokenizer.eos_token_id,
                 max_length=model.config.max_position_embeddings,
                 do_sample=True,
                 temperature=temperature,
