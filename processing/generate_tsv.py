@@ -12,7 +12,7 @@ def get_wiki(wiki_idx):
     return wiki
 
 
-def select_most_similar(queries, text, top_l=5):
+def select_most_similar(queries, text, top_l=3):
     text = re.sub(r'\n+', '\n', text)
     text = text.replace('\n', ' ')
 

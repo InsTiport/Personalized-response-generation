@@ -27,6 +27,20 @@ arg_parser.add_argument(
 )
 
 arg_parser.add_argument(
+    '-b', '--batch_size',
+    type=int,
+    default=5,
+    help='Specify the batch size of the model while it was trained'
+)
+
+arg_parser.add_argument(
+    '-e', '--epoch',
+    type=int,
+    default=3,
+    help='Specify which epoch\'s checkpoint to use'
+)
+
+arg_parser.add_argument(
     '--num_beams',
     type=int,
     default=1,
@@ -43,7 +57,7 @@ arg_parser.add_argument(
     '--temperature',
     type=float,
     default=1.,
-    help=f'Temperature for beam search'
+    help=f'Temperature'
 )
 
 arg_parser.add_argument(
@@ -68,7 +82,7 @@ hyper-parameter and generation specifications
 '''
 DEVICE_ID = args.gpu  # adjust this to use an unoccupied GPU
 EVAL_BATCH_SIZE = args.eval_batch_size
-MODEL_NAME = f'bart-base_epoch_10_bsz_2_small_utterance'
+MODEL_NAME = f'bart-base_bsz_{args.batch_size}_epoch_{args.epoch}'
 
 # specifications
 r'''MAX_LEN = default value: max length of model input'''
