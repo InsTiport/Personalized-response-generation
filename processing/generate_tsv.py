@@ -1,5 +1,35 @@
 import os
 import numpy as np
+import re
+from pysbd import Segmenter
+from sklearn.feature_extraction.text import TfidfVectorizer
+from tqdm import tqdm
+
+
+def get_wiki(wiki_idx):
+    with open(os.path.join('data', 'wiki', wiki_idx), 'r') as read_wiki:
+        wiki = read_wiki.read()
+    return wiki
+
+
+def select_most_similar(query, text, top_l=5):
+    text = re.sub(r'\n+', '\n', text)
+    text = text.replace('\n', ' ')
+
+    seg = Segmenter(language='en', clean=False)
+    sentences = list(seg.segment(text))
+    sentences = [s.strip() for s in sentences]
+
+    vectorizer = TfidfVectorizer()
+    vectors = vectorizer.fit_transform([query] + sentences).toarray()
+
+    scores = vectors[1:, :] @ vectors[0].reshape(-1, 1).flatten()
+    indices = scores.argsort()[-min(top_l, len(scores)):]
+
+    # res is a string by concatenating all l most similar sentences
+    res = ' '.join([sentences[1:][index] for index in range(len(sentences[1:])) if index in indices])
+    return res
+
 
 os.chdir('../')
 
@@ -11,7 +41,9 @@ with open(os.path.join('data', 'interview.txt'), 'r') as r:
     with open(os.path.join('data', 'interview_qa.tsv'), 'w') as w:
         w.write('id\t')
         w.write('sport_type\t')
+        w.write('game_wiki_id\t')
         w.write('game_wiki\t')
+        w.write('section_wiki_id\t')
         w.write('section_wiki\t')
         w.write('title\t')
         w.write('date\t')
@@ -23,15 +55,17 @@ with open(os.path.join('data', 'interview.txt'), 'r') as r:
 
         player2index = dict()
 
-        for interview in dataset:
+        for interview in tqdm(dataset):
             lines = interview.split('\n')
             # some lines may be empty due to splitting, remove those
             lines = [line.replace('End of FastScripts', '').strip() for line in lines if len(line) > 3]
 
             interview_id = lines[0][lines[0].index('[id]') + len('[id] '):]
             sport_type = lines[1][lines[1].index('[sport_type]') + len('[sport_type] '):]
-            game_wiki = lines[2][lines[2].index('[game_wiki]') + len('[game_wiki] '):]
-            section_wiki = lines[3][lines[3].index('[section_wiki]') + len('[section_wiki] '):]
+
+            game_wiki_id = lines[2][lines[2].index('[game_wiki]') + len('[game_wiki] '):]
+            section_wiki_id = lines[3][lines[3].index('[section_wiki]') + len('[section_wiki] '):]
+
             title = lines[4][lines[4].index('[title]') + len('[title] '):]
             date = lines[5][lines[5].index('[date]') + len('[date] '):]
             participants = lines[6][lines[6].index('[participants]') + len('[participants] '):]
@@ -46,6 +80,16 @@ with open(os.path.join('data', 'interview.txt'), 'r') as r:
 
                     question, response = lines[i].split('\t')[:2]  # only keep the first response for every question
                     question = question[question.index('Q:') + len('Q: '):]
+
+                    if game_wiki_id != '':
+                        game_wiki = select_most_similar(question, get_wiki(game_wiki_id))
+                    else:
+                        game_wiki = ''
+                    if section_wiki_id != '':
+                        section_wiki = select_most_similar(question, get_wiki(section_wiki_id))
+                    else:
+                        section_wiki = ''
+
                     respondent = response[:response.index(':')].lower().title()
                     respondent_with_sport_type = respondent + '_' + sport_type
                     if respondent_with_sport_type not in player2index.keys():
@@ -56,16 +100,18 @@ with open(os.path.join('data', 'interview.txt'), 'r') as r:
 
                     w.write(f'{interview_id}\t')
                     w.write(f'{sport_type}\t')
+                    w.write(f'{game_wiki_id}\t')
                     w.write(f'{game_wiki}\t')
+                    w.write(f'{section_wiki_id}\t')
                     w.write(f'{section_wiki}\t')
                     w.write(f'{title}\t')
                     w.write(f'{date}\t')
                     w.write(f'{participants}\t')
                     w.write(f'{background}\t')
-
                     w.write(f'{respondent} | {player2index[respondent_with_sport_type]}\t')
                     w.write(f'{question}\t')
                     w.write(f'{response}\n')
+
         print(f'There are {len(player2index)} unique players.')
 
 print('generating train, dev and test splits...')
