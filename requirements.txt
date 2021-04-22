@@ -1,6 +1,6 @@
 requests~=2.25.1
 beautifulsoup4~=4.9.3
-tqdm~=4.56.2
+tqdm
 numpy~=1.20.0
 pandas~=1.2.2
 spacy~=3.0.3
