@@ -10,7 +10,10 @@ Also, there is a `Dataset` class implemented in `interview_dataset.py` (in the p
 See the [Data](#data) section for details.
 
 ### Train
-Right now, training for BART, DialoGPT, Seq2Seq and Speaker model is supported. See the [Training](#training-and-evaluating-models) section for details.
+Right now, training for BART, BART with background, BART with Wiki context, DialoGPT, Seq2Seq and Speaker model is supported. See the [Training](#training) section for details.
+
+### Evaluate
+After you train your model, you can go to the `evaluation` folder to run the evaluation script for your model. See the [Evaluation](#model-evaluation) section for details.
 
 ## Data
 
@@ -56,7 +59,9 @@ This will generate `interview.txt` under `data`. While generating `interview.txt
 ### `interview_qa.tsv` and `interview_qa_*.tsv`'s
 These files are in `tsv` format because dialogues naturally contain commas, and thus `csv` format isn't suitable here. `interview_qa.tsv` and its three train/dev/test splits (`interview_qa_train.tsv`, `interview_qa_dev.tsv` and `interview_qa_test.tsv`) are generated from `interview.txt`. Bascially, these files are tabulated versions of `interview.txt` and thus can be used more easily during training.
 
-Each one of these contains a header on its first line, which has 11 fields (columns): id, sport_type, game_wiki, section_wiki, title, date, participants, background, respondent, question and response. Then from the second line onward, each line will be a single training sample.
+Each one of these contains a header on its first line, which has 13 fields (columns): id, sport_type, game_wiki_id, game_wiki, section_wiki_id, section_wiki, title, date, participants, background, respondent, question and response. Then from the second line onward, each line will be a single training sample.
+
+For game_wiki and section_wiki, the method for generating those is by selecting the top 3 most similar sentences (cosine similarity of tf-idf weighted vector) by comparing question and sentences segmented from all game/section wiki texts. 
 
 The train/dev/test splitting is partioned using a ratio of 0.98:0.1:0.1. The splitting is performed after the original dataset is shuffled randomly.
 
@@ -95,7 +100,7 @@ python link_game_background.py
 
 This script requires `game_search_result` and `section_search_result` which are loacted in `data/`. This script will scrape and assign an index for each wikipedia page and then it appends two columns at the end of `*_episode.csv` indicating the index of the background wikipedia pages.
 
-## Training and Evaluating Models
+## Training
 
 ### General training guideline
 Scripts for training are located in `train`, and training result will be located in `model_weights`.
@@ -149,45 +154,82 @@ Arguments:
 
 `--max_grad_norm`: gradient clipping, with default value 1
 
-### NEED UPDATE Evaluating trained BART
-Get the trained model [here](https://drive.google.com/drive/folders/12wZvtyhnTpjQEqjKljWio8bQh4syt6io?usp=sharing). To use this model, download `bart-base_epoch_10_bsz_2_small_utterance.pt` to `model`.
+## Model Evaluation
 
-To evaluate this particular trained model, inside `training`, run:
+### General evaluation guideline
+Scripts for model evaluation are located in `evaluation`, and evaluation result will be located in `evaluation_results`.
+
+Each distinct model has its own evaluation script. Running the evaluation script for a model will compute perplexity, BLEU and BERT scores on the test dataset. The evaluation result will be logged into a file with `.ev` extension under `model_weights`. If you run the script multiple times, previous results won't be erased, but concatenated to that file instead. This is helpful for comparing results of different decoding schemes.
+
+All evaluation scripts have the following arguments:
+
+`--gpu`: which gpu to use, with default value 0
+
+`--eval_batch_size`: batch size used for evaluation
+
+`-e`: number of epochs trained for the model
+
+`-b`: batch size of the model
+
+For `-e` and `-b`, you can first go to `model_weights` to check the batch size and epoch number of the model before running the evaluation script for that model.
+
+### Evaluating BART
+
+To evaluate this model, inside `evaluation`, run:
 
 ```python
 python eval_BART.py ...
 ```
 
-Running this script will compute perplexity and BLEU scores on the validation dataset. The evaluation result will be logged into a file with `.ev` extension inside `model`. If you run this script multiple times, previous results won't be erased, but concatenated to that file instead. This is helpful for comparing results of different decoding schemes.
-
 There are many arguments for this script. Without any argument, this sciprt will use greedy decoding (equivalent to setting `--num_beams 1`).
 
-To use sampling based decoding with top-p probability 0.93, run:
+For example, to use sampling based decoding with top-p probability 0.93, run:
 
-```python -W ignore eval_BART.py -s --top_p 0.93 ```
+```python
+python eval_BART.py -s --top_p 0.93
+```
 
-To use beam search with size 10 and GPU 3, run:
+As an another example, to use beam search with size 10 and GPU 3, run:
 
-```python -W ignore eval_BART.py --gpu 3 --num_beams 10 ```
+```python
+python eval_BART.py --gpu 3 --num_beams 10
+```
 
-Arguments of `eval_BART.py`:
-
-`--gpu`: which gpu to use, with default value 0
-
-`--batch_size`: batch size used while performing evaluation, with default value 5
+Script specific arguments (in addition to the general arguments described [above](#general-evaluation-guideline)):
 
 `--num_beams`: beam search size, with default value 1
 
-`--temperature`: a hyperparameter for beam search, with default value 1.0
-
 `-s`: toggle to use sampling based methods instead of beam search
+
+`--temperature`: temperature, with default value 1.0
 
 `--top_k`: default value 50
 
 `--top_p`: default value 1.0
 
+### Evaluating Seq2Seq
+
+To evaluate this model, inside `evaluation`, run:
+
+```python
+python eval_seq2seq.py ...
+```
+
+Currently we only support greedy decoding for this model (this does not affect perplexity though). See the general arguments described [above](#general-evaluation-guideline).
+
+### Evaluating Speaker model
+
+To evaluate this model, inside `evaluation`, run:
+
+```python
+python eval_speaker.py ...
+```
+
+Currently we only support greedy decoding for this model (this does not affect perplexity though). See the general arguments described [above](#general-evaluation-guideline).
+
 ## Scraping
-### Web scraping
+
+### Scraping interview transcripts
 All scraped interview transcripts are located in `data/[sport_name]` folder. You don't need to redo this step since all interviews have been scrpaed.
 
 However, if you want to scrape interviews by yourself, inside `scraping` folder, run:
@@ -197,3 +239,7 @@ python scraper.py
 ```
 
 The scraper will also create an `excluded_url.txt` file in each `data/[sport_name]` folder. This file documents all urls that are excluded while scraping because their contents are unable to decode properly for any reason.
+
+### Scraping Wikipedia pages
+
+TO BE FINISHED
