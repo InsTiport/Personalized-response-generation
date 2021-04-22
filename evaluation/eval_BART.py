@@ -104,7 +104,7 @@ num_return_sentences = 1
 '''
 logging 
 '''
-log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.ev'), 'a+')
+log_file = open(os.path.join('evaluation_results', f'{MODEL_NAME}.ev'), 'a+')
 
 '''
 model and tokenizer
