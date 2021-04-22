@@ -26,7 +26,6 @@ def select_most_similar(query, text, top_l=5):
 
     scores = vectors[1:, :] @ vectors[0].reshape(-1, 1).flatten()
     indices = scores.argsort()[-min(top_l, len(scores)):]
-    print(scores[indices])
 
     # res is a string by concatenating all l most similar sentences
     res = ' '.join([sentences[1:][i] for i in range(len(sentences[1:])) if i in indices])
