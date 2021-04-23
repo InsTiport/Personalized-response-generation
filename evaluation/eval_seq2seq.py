@@ -139,8 +139,7 @@ with torch.no_grad():
     test_dataset = InterviewDataset(data='test')
     test_data_loader = torch.utils.data.DataLoader(
         test_dataset,
-        batch_size=EVAL_BATCH_SIZE,
-        shuffle=True
+        batch_size=EVAL_BATCH_SIZE
     )
 
     batch_num = 0
@@ -183,11 +182,15 @@ with torch.no_grad():
 
         # add generated responses and gold responses for future BLEU computation
         predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids]
-        for q, r in zip(batch['question'], batch['response']):
-            if len(r) == 0:
-                print('Note here!')
-                print()
-        references = [[r] for r in batch['response']]
+
+        tmp_predictions, tmp_responses = [], []
+        for prediction, response in zip(predictions, batch['response']):
+            if len(response) > 0:
+                tmp_predictions.append(prediction)
+                tmp_responses.append(response)
+        predictions, responses = tmp_predictions, tmp_responses
+
+        references = [[r] for r in responses]
         metric_bleu.add_batch(predictions=predictions, references=references)
         metric_BERTScore.add_batch(predictions=predictions, references=references)
 
