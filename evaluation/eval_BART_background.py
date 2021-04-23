@@ -104,6 +104,7 @@ num_return_sentences = 1
 '''
 logging 
 '''
+os.makedirs(os.path.dirname('evaluation_results' + '/'), exist_ok=True)
 log_file = open(os.path.join('evaluation_results', f'{MODEL_NAME}.ev'), 'a+')
 
 '''

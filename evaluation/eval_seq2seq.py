@@ -106,6 +106,7 @@ MODEL_NAME = f'seq2seq_bsz_{args.batch_size}_epoch_{args.epoch}'
 '''
 logging 
 '''
+os.makedirs(os.path.dirname('evaluation_results' + '/'), exist_ok=True)
 log_file = open(os.path.join('evaluation_results', f'{MODEL_NAME}.ev'), 'a+')
 
 '''
