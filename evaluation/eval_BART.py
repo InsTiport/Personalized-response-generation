@@ -137,8 +137,7 @@ with torch.no_grad():
     test_dataset = InterviewDataset(data='test')
     test_data_loader = torch.utils.data.DataLoader(
         test_dataset,
-        batch_size=EVAL_BATCH_SIZE,
-        shuffle=True
+        batch_size=EVAL_BATCH_SIZE
     )
 
     batch_num = 0
