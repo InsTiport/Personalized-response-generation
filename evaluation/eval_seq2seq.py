@@ -182,6 +182,10 @@ with torch.no_grad():
 
         # add generated responses and gold responses for future BLEU computation
         predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids]
+        for q, r in zip(batch['question'], batch['response']):
+            if len(r) == 0:
+                print('Note here!')
+                print()
         references = [[r] for r in batch['response']]
         metric_bleu.add_batch(predictions=predictions, references=references)
         metric_BERTScore.add_batch(predictions=predictions, references=references)
