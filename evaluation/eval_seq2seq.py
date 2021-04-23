@@ -117,7 +117,7 @@ if device == 'cuda':
     torch.cuda.set_device(DEVICE_ID)  # use an unoccupied GPU
 
 # load model
-SAVE_PATH = os.path.join('evaluation_results', f'{MODEL_NAME}.pt')
+SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}.pt')
 model = Seq2Seq().to(device)
 model.load_state_dict(torch.load(SAVE_PATH, map_location=device))
 
