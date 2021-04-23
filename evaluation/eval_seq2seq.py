@@ -106,7 +106,7 @@ MODEL_NAME = f'seq2seq_bsz_{args.batch_size}_epoch_{args.epoch}'
 '''
 logging 
 '''
-log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.ev'), 'a+')
+log_file = open(os.path.join('evaluation_results', f'{MODEL_NAME}.ev'), 'a+')
 
 '''
 model and tokenizer
