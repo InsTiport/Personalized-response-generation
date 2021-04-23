@@ -166,6 +166,14 @@ with torch.no_grad():
         total_loss += float(loss)
         batch_num += 1
 
+        prompts = batch['question']
+        input_encoding = tokenizer(
+            [prompt + tokenizer.eos_token for prompt in prompts],
+            return_tensors='pt',
+            padding=True,
+            truncation=True
+        ).to(device)
+
         # generation
         if use_beam:
             model_res_ids = model.generate(
@@ -190,6 +198,7 @@ with torch.no_grad():
 
         # add generated responses and gold responses for future BLEU computation
         predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids]
+        predictions = [prediction[len(prompt):] for prediction, prompt in zip(predictions, prompts)]
         references = [[r] for r in batch_r]
         metric_bleu.add_batch(predictions=predictions, references=references)
         metric_BERTScore.add_batch(predictions=predictions, references=references)
