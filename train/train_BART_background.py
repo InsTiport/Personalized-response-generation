@@ -167,9 +167,6 @@ for epo in range(NUM_EPOCH):
             target_ids = target_encoding['input_ids'].to(device)
             target_ids[target_ids == model.config.pad_token_id] = -100
 
-            # zero-out gradient
-            optimizer.zero_grad()
-
             # forward pass
             outputs = model(**input_encoding, labels=target_ids)
 
