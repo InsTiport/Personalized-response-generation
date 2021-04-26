@@ -281,7 +281,7 @@ class Seq2Seq(nn.Module):
         # encoder_output.shape: (max_input_seq_len, batch_size, hidden_size)
         # attention_mask.shape: (max_input_seq_len, batch_size)
 
-        logits, _, _ = self.decoder(y, h, c, encoder_output, attention_mask)
+        logits, _, _ = self.decoder(y, h, c, encoder_output, attention_mask, speaker_id=speaker_id)
 
         return logits
 

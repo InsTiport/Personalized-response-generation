@@ -119,7 +119,7 @@ if device == 'cuda':
 
 # load model
 SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}.pt')
-model = Seq2Seq().to(device)
+model = Seq2Seq(use_speaker=True).to(device)
 model.load_state_dict(torch.load(SAVE_PATH, map_location=device))
 
 model.eval()
@@ -182,8 +182,8 @@ with torch.no_grad():
         # generation
         input_ids = torch.transpose(input_ids, 0, 1)  # shape: (batch_size, max_question_len)
         model_res_ids = []
-        for question in input_ids:
-            model_res_ids.append(model.generate(question.reshape(-1, 1)))
+        for batch_index in range(input_ids.shape[0]):
+            model_res_ids.append(model.generate(input_ids[batch_index].reshape(-1, 1), speaker_id=speaker_id[batch_index].unsqueeze(0)))
 
         # add generated responses and gold responses for future BLEU computation
         predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids]
