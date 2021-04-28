@@ -118,11 +118,19 @@ for epo in range(NUM_EPOCH):
         # this kind of embedding will make the input to BART decoder be like </s> <s> content </s>
         target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
         target_ids = target_encoding['input_ids'].to(device)
-        target_ids[target_ids == model.bart.config.pad_token_id] = -100
+        target_attention_mask = target_encoding['attention_mask'].to(device)
 
-        decoder_input_ids = target_ids[:, :-1].to(device)
-        decoder_attention_mask = target_encoding['attention_mask'][:, :-1].to(device)
-        labels = target_ids[:, 1:].to(device)
+        decoder_input_ids = target_ids.new_zeros(target_ids.shape)
+        decoder_input_ids[:, 1:] = target_ids[:, :-1].clone()
+        decoder_input_ids[:, 0] = model.bart.config.decoder_start_token_id
+
+        decoder_attention_mask = target_attention_mask.new_ones(target_attention_mask.shape)
+        decoder_attention_mask[:, 1:] = target_attention_mask[:, :-1].clone()
+
+        labels = target_ids.clone()
+        labels[labels == model.bart.config.pad_token_id] = -100
+
+        del target_ids
 
         # zero-out gradient
         optimizer.zero_grad()
