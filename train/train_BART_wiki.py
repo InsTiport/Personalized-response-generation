@@ -1,14 +1,17 @@
 import argparse
 from matplotlib import pyplot as plt
-from transformers import BartForConditionalGeneration, BartTokenizer
+from transformers import BartModel, BartTokenizer
 from transformers import AdamW
+from sentence_transformers import SentenceTransformer
 import torch
+import torch.nn as nn
 import numpy as np
 import os
 import tqdm
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 from interview_dataset import InterviewDataset
+from model.Bart_wiki import Bart_wiki_model
 
 # setup args
 arg_parser = argparse.ArgumentParser()
@@ -63,7 +66,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 if device == 'cuda':
     torch.cuda.set_device(DEVICE_ID)  # use an unoccupied GPU
 # load model
-model = BartForConditionalGeneration.from_pretrained('facebook/bart-base').to(device)
+model = Bart_wiki_model().to(device)
+sentence_encoder = SentenceTransformer('paraphrase-distilroberta-base-v1')
 # load tokenizer
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
@@ -102,31 +106,44 @@ for epo in range(NUM_EPOCH):
         batch_sw = batch['section_wiki']
         batch_gw = batch['game_wiki']
 
-        inputs = [q + tokenizer.sep_token + s + tokenizer.sep_token + g for q, s, g in zip(batch_q, batch_sw, batch_gw)]
+        section_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_sw))
+        game_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_gw))
 
         # input encoding
-        input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
+        input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
+        input_ids = input_encoding['input_ids'].to(device)
+        input_attention_mask = input_encoding['attention_mask'].to(device)
 
         # target encoding
         # this kind of embedding will make the input to BART decoder be like </s> <s> content </s>
         target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
         target_ids = target_encoding['input_ids'].to(device)
-        target_ids[target_ids == model.config.pad_token_id] = -100
+        target_ids[target_ids == model.bart.config.pad_token_id] = -100
+
+        decoder_input_ids = target_ids[:, :-1].to(device)
+        decoder_attention_mask = target_encoding['attention_mask'][:, :-1].to(device)
+        labels = target_ids[:, 1:].to(device)
 
         # zero-out gradient
         optimizer.zero_grad()
 
         # forward pass
-        outputs = model(**input_encoding, labels=target_ids)
+        logits = model(input_ids=input_ids,
+                        attention_mask=input_attention_mask,
+                        decoder_input_ids=decoder_input_ids,
+                        decoder_attention_mask=decoder_attention_mask,
+                        section_wiki_encoding=section_wiki_encoding,
+                        game_wiki_encoding=game_wiki_encoding)
+        print(logits.shape, labels.shape)
+
 
         # compute loss and perform a step
-        loss = outputs.loss
+        logits = logits.reshape(-1, logits.shape[-1]).to(device)
+        labels = labels.reshape(-1).to(device)
+        loss = nn.CrossEntropyLoss(ignore_index=-100)(logits, labels)
         loss.backward()
         optimizer.step()
 
-        # if idx % 1000 == 0:
-        #     print(f'epoch: {epo}, batch: {idx}, memory reserved {torch.cuda.memory_reserved(DEVICE_ID) / 1e9} GB')
-        #     print(f'epoch: {epo}, batch: {idx}, memory allocated {torch.cuda.memory_allocated(DEVICE_ID) / 1e9} GB')
         idx += 1
 
         total_loss += float(loss)
