@@ -134,7 +134,6 @@ for epo in range(NUM_EPOCH):
                         decoder_attention_mask=decoder_attention_mask,
                         section_wiki_encoding=section_wiki_encoding,
                         game_wiki_encoding=game_wiki_encoding)
-        print(logits.shape, labels.shape)
 
 
         # compute loss and perform a step
