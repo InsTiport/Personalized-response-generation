@@ -130,7 +130,6 @@ for epo in range(NUM_EPOCH):
         labels = target_ids.clone()
         labels[labels == model.bart.config.pad_token_id] = -100
 
-        del target_ids
 
         # zero-out gradient
         optimizer.zero_grad()
@@ -161,6 +160,10 @@ for epo in range(NUM_EPOCH):
     print(f'Loss in epoch {epo}: {total_loss}')
     log_file.write(f'Epoch:{epo} ')
     log_file.write(f'Loss:{total_loss} ')
+
+    SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{epo+1}.pt')
+    # save model after training for one epoch
+    torch.save(model.state_dict(), SAVE_PATH)
 
     # evaluation
     model.eval()
@@ -230,10 +233,6 @@ for epo in range(NUM_EPOCH):
         ppl_record.append(perplexity)
         print(f'Perplexity: {perplexity}')
         log_file.write(f'Perplexity:{perplexity}\n')
-
-    SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}_epoch_{epo+1}.pt')
-    # save model after training for one epoch
-    torch.save(model.state_dict(), SAVE_PATH)
 
 # close log file
 log_file.close()
