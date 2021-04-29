@@ -108,7 +108,7 @@ class PointerGeneratorDecoder(nn.Module):
             weighted_sum = torch.einsum('bnm,bnd->mbd', weights, encoder_output)
             # weighted_sum.shape: (decoder_seq_len, batch_size, hidden_size)
 
-            p_gen = torch.zeros(weighted_sum.shape[0] * weighted_sum.shape[1])
+            p_gen = torch.zeros(weighted_sum.shape[0] * weighted_sum.shape[1]).to(weighted_sum.device)
             # shape: (decoder_seq_len * batch_size)
 
             # h_weight: (1, hidden_size), weighted_sum.shape: (decoder_seq_len, batch_size, hidden_size)
