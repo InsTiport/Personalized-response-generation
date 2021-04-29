@@ -7,7 +7,7 @@ class Bart_wiki_model(nn.Module):
         super().__init__()
 
         self.bart = BartModel.from_pretrained('facebook/bart-base')
-        self.linear = nn.Linear(3 * self.bart.config.d_model, vocab_size, self.bart.config.vocab_size)
+        self.linear = nn.Linear(3 * self.bart.config.d_model, self.bart.config.vocab_size)
 
     def forward(self, input_ids, attention_mask, decoder_input_ids, decoder_attention_mask, section_wiki_encoding, game_wiki_encoding):
         outputs = self.bart(input_ids=input_ids,
