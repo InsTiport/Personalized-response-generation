@@ -108,41 +108,6 @@ class PointerGeneratorDecoder(nn.Module):
             weighted_sum = torch.einsum('bnm,bnd->mbd', weights, encoder_output)
             # weighted_sum.shape: (decoder_seq_len, batch_size, hidden_size)
 
-            p_gen = torch.zeros(weighted_sum.shape[0] * weighted_sum.shape[1]).to(weighted_sum.device)
-            # shape: (decoder_seq_len * batch_size)
-
-            # h_weight: (1, hidden_size), weighted_sum.shape: (decoder_seq_len, batch_size, hidden_size)
-            # => (decoder_seq_len, batch_size)
-            weighted_sum_tmp = weighted_sum.reshape(-1, self.hidden_size).unsqueeze(-1)
-            # shape: (decoder_seq_len * batch_size, hidden_size, 1)
-            h_weight_tmp = self.h_weight.repeat(weighted_sum_tmp.shape[0], 1).unsqueeze(1)
-            # shape: (decoder_seq_len * batch_size, 1, hidden_size)
-            p_gen += torch.bmm(h_weight_tmp, weighted_sum_tmp).squeeze() + self.g_bias[0]
-
-            # s_weight: (1, hidden_size), lstm_out: (decoder_seq_len, batch_size, hidden_size)
-            # => (decoder_seq_len, batch_size)
-            lstm_out_tmp = lstm_out.reshape(-1, self.hidden_size).unsqueeze(-1)
-            # shape: (decoder_seq_len * batch_size, hidden_size, 1)
-            s_weight_tmp = self.s_weight.repeat(lstm_out_tmp.shape[0], 1).unsqueeze(1)
-            # shape: (decoder_seq_len * batch_size, 1, hidden_size)
-            p_gen += torch.bmm(s_weight_tmp, lstm_out_tmp).squeeze() + self.g_bias[1]
-
-            # x_weight: (1, embed_size), embed.shape: (decoder_seq_len, batch_size, embed_size)
-            # => (decoder_seq_len, batch_size)
-            embed_tmp = embed.reshape(-1, self.embed_size).unsqueeze(-1)
-            # shape: (decoder_seq_len * batch_size, hidden_size, 1)
-            x_weight_tmp = self.x_weight.repeat(embed_tmp.shape[0], 1).unsqueeze(1)
-            # shape: (decoder_seq_len * batch_size, 1, hidden_size)
-            p_gen += torch.bmm(x_weight_tmp, embed_tmp).squeeze() + self.g_bias[2]
-
-            # concatenate context c_t with h_t to get (h_t)~
-            lstm_out = self.tanh(self.attention_concat(torch.cat((lstm_out, weighted_sum), dim=2)))
-            # lstm_out.shape: (decoder_seq_len, batch_size, hidden_size)
-
-            p_gen = self.sigmoid(p_gen)
-
-            p_gen = p_gen.reshape(*(lstm_out.shape[:2]))
-
         else:
             # need to reshape lstm_out_transformed to use bmm
             # lstm_out_transformed.shape : (batch_size, hidden_size, 1)
@@ -162,9 +127,40 @@ class PointerGeneratorDecoder(nn.Module):
             weighted_sum = torch.sum(encoder_output * weights, dim=1)  # shape: (batch_size, hidden_size)
             weighted_sum = weighted_sum.unsqueeze(0)  # shape: (1, batch_size, hidden_size)
 
-            # concatenate context c_t with h_t to get (h_t)~
-            lstm_out = self.tanh(self.attention_concat(torch.cat((lstm_out, weighted_sum), dim=2)))
-            # lstm_out.shape: (1, batch_size, hidden_size)
+        p_gen = torch.zeros(weighted_sum.shape[0] * weighted_sum.shape[1]).to(weighted_sum.device)
+        # shape: (decoder_seq_len * batch_size)
+
+        # h_weight: (1, hidden_size), weighted_sum.shape: (decoder_seq_len, batch_size, hidden_size)
+        # => (decoder_seq_len, batch_size)
+        weighted_sum_tmp = weighted_sum.reshape(-1, self.hidden_size).unsqueeze(-1)
+        # shape: (decoder_seq_len * batch_size, hidden_size, 1)
+        h_weight_tmp = self.h_weight.repeat(weighted_sum_tmp.shape[0], 1).unsqueeze(1)
+        # shape: (decoder_seq_len * batch_size, 1, hidden_size)
+        p_gen += torch.bmm(h_weight_tmp, weighted_sum_tmp).squeeze() + self.g_bias[0]
+
+        # s_weight: (1, hidden_size), lstm_out: (decoder_seq_len, batch_size, hidden_size)
+        # => (decoder_seq_len, batch_size)
+        lstm_out_tmp = lstm_out.reshape(-1, self.hidden_size).unsqueeze(-1)
+        # shape: (decoder_seq_len * batch_size, hidden_size, 1)
+        s_weight_tmp = self.s_weight.repeat(lstm_out_tmp.shape[0], 1).unsqueeze(1)
+        # shape: (decoder_seq_len * batch_size, 1, hidden_size)
+        p_gen += torch.bmm(s_weight_tmp, lstm_out_tmp).squeeze() + self.g_bias[1]
+
+        # x_weight: (1, embed_size), embed.shape: (decoder_seq_len, batch_size, embed_size)
+        # => (decoder_seq_len, batch_size)
+        embed_tmp = embed.reshape(-1, self.embed_size).unsqueeze(-1)
+        # shape: (decoder_seq_len * batch_size, hidden_size, 1)
+        x_weight_tmp = self.x_weight.repeat(embed_tmp.shape[0], 1).unsqueeze(1)
+        # shape: (decoder_seq_len * batch_size, 1, hidden_size)
+        p_gen += torch.bmm(x_weight_tmp, embed_tmp).squeeze() + self.g_bias[2]
+
+        # concatenate context c_t with h_t to get (h_t)~
+        lstm_out = self.tanh(self.attention_concat(torch.cat((lstm_out, weighted_sum), dim=2)))
+        # lstm_out.shape: (decoder_seq_len, batch_size, hidden_size)
+
+        p_gen = self.sigmoid(p_gen)
+
+        p_gen = p_gen.reshape(*(lstm_out.shape[:2]))
 
         logits = self.out(self.dropout(lstm_out)).squeeze()
         # shape: (batch_size, vocab_size) or (decoder_seq_len, batch_size, vocab_size) if train
@@ -254,20 +250,21 @@ class PointerGenerator(nn.Module):
         p_gen = p_gen.unsqueeze(-1)
         p_gen = p_gen.expand(-1, -1, self.vocab_size)  # shape: (decoder_seq_len, batch_size, vocab_size)
 
-        # first component
-        logits = torch.softmax(logits, dim=-1) * p_gen
-
-        # second component
-        tmp_logits = torch.zeros_like(logits)
-
-        x_transposed = x.transpose(0, 1)  # x_transposed.shape: (batch_size, input_seq_len)
-        for decoder_pos in range(logits.shape[0]):
-            for batch in range(logits.shape[1]):
-                for idx, encoder_pos in enumerate(x_transposed[batch, :]):
-                    tmp_logits[decoder_pos, batch, encoder_pos] += weights[batch, idx, decoder_pos]
-                tmp_logits[decoder_pos, batch] *= p_gen[decoder_pos, batch, 0]
-
-        logits += tmp_logits
+        # # first component
+        # logits = torch.softmax(logits, dim=-1) * p_gen
+        #
+        # # second component
+        # tmp_logits = torch.zeros_like(logits)
+        #
+        # x_transposed = x.transpose(0, 1)  # x_transposed.shape: (batch_size, input_seq_len)
+        # for decoder_pos in range(logits.shape[0]):
+        #     for batch in range(logits.shape[1]):
+        #         for idx, encoder_pos in enumerate(x_transposed[batch, :]):
+        #             tmp_logits[decoder_pos, batch, encoder_pos] += weights[batch, idx, decoder_pos]
+        #         tmp_logits[decoder_pos, batch] *= p_gen[decoder_pos, batch, 0]
+        #
+        # logits += tmp_logits
+        # logits = torch.log(logits)
 
         return logits
 
