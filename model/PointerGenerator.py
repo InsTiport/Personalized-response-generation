@@ -27,7 +27,7 @@ class PointerGeneratorDecoder(nn.Module):
         self.h_weight = nn.Parameter(torch.zeros(1, hidden_size))
         self.s_weight = nn.Parameter(torch.zeros(1, hidden_size))
         self.x_weight = nn.Parameter(torch.zeros(1, embed_size))
-        self.g_bias = nn.Parameter(torch.zeros(3))
+        self.g_bias = nn.Parameter(torch.zeros(1))
 
         self.rnn = nn.LSTM(
             input_size=embed_size,
@@ -128,24 +128,23 @@ class PointerGeneratorDecoder(nn.Module):
         p_gen = torch.zeros(weighted_sum.shape[0] * weighted_sum.shape[1]).to(weighted_sum.device)
         # shape: (decoder_seq_len * batch_size)
 
-        for idx, matrix, weight, size in zip(
-                list(range(3)),
+        for matrix, weight, size in zip(
                 [weighted_sum, lstm_out, embed],
                 [self.h_weight, self.s_weight, self.x_weight],
                 [self.hidden_size, self.hidden_size, self.embed_size]
         ):
             '''
-            weight: (1, size), matrix.shape: (decoder_seq_len, batch_size, size)
+            weight.shape: (1, size), matrix.shape: (decoder_seq_len, batch_size, size)
             => (decoder_seq_len * batch_size)
             '''
             matrix_reshaped = matrix.reshape(-1, size).unsqueeze(-1)
             # shape: (decoder_seq_len * batch_size, size, 1)
             weight_reshaped = weight.repeat(matrix_reshaped.shape[0], 1).unsqueeze(1)
             # shape: (decoder_seq_len * batch_size, 1, size)
-            p_gen += torch.bmm(weight_reshaped, matrix_reshaped).squeeze() + self.g_bias[idx]
+            p_gen += torch.bmm(weight_reshaped, matrix_reshaped).squeeze()
 
         # sigmoid
-        p_gen = self.sigmoid(p_gen)  # shape: (decoder_seq_len * batch_size)
+        p_gen = self.sigmoid(p_gen + self.g_bias)  # shape: (decoder_seq_len * batch_size)
         p_gen = p_gen.reshape(*(weighted_sum.shape[:2]))  # shape: (decoder_seq_len, batch_size)
 
         # concatenate context c_t with h_t to get (h_t)~
@@ -241,12 +240,10 @@ class PointerGenerator(nn.Module):
         # second component
         tmp_logits = torch.zeros_like(logits)
 
-        x_transposed = x.transpose(0, 1)  # x_transposed.shape: (batch_size, input_seq_len)
-        for decoder_pos in range(logits.shape[0]):
-            for batch in range(logits.shape[1]):
-                for idx, encoder_pos in enumerate(x_transposed[batch, :]):
-                    tmp_logits[decoder_pos, batch, encoder_pos] += weights[batch, idx, decoder_pos]
-                tmp_logits[decoder_pos, batch] *= p_gen[decoder_pos, batch, 0]
+        x_transposed = x.transpose(0, 1)  # x_transposed.shape: (batch_size, encoder_seq_len)
+        weights_transposed = weights.permute(2, 0, 1)  # shape: (decoder_seq_len, batch_size, encoder_seq_len)
+        for idx, batch in enumerate(x_transposed):
+            tmp_logits[:, idx, batch] += weights_transposed[:, idx]
 
         # compute new logits and take log (to use nll loss during training)
         logits += tmp_logits
