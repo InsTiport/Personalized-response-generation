@@ -244,6 +244,7 @@ class PointerGenerator(nn.Module):
         weights_transposed = weights.permute(2, 0, 1)  # shape: (decoder_seq_len, batch_size, encoder_seq_len)
         for idx, batch in enumerate(x_transposed):
             tmp_logits[:, idx, batch] += weights_transposed[:, idx]
+            tmp_logits[:, idx] *= 1 - p_gen[:, idx, 0]
 
         # compute new logits and take log (to use nll loss during training)
         logits += tmp_logits
