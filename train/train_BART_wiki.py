@@ -67,7 +67,7 @@ if device == 'cuda':
     torch.cuda.set_device(DEVICE_ID)  # use an unoccupied GPU
 # load model
 model = Bart_wiki_model().to(device)
-sentence_encoder = SentenceTransformer('paraphrase-distilroberta-base-v1')
+sentence_encoder = SentenceTransformer('paraphrase-distilroberta-base-v1').to(device)
 # load tokenizer
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
@@ -183,25 +183,46 @@ for epo in range(NUM_EPOCH):
             batch_sw = batch['section_wiki']
             batch_gw = batch['game_wiki']
 
-            inputs = [q + tokenizer.sep_token + s + tokenizer.sep_token + g
-                      for q, s, g in zip(batch_q, batch_sw, batch_gw)]
+            section_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_sw))
+            game_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_gw))
 
             # input encoding
-            input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
+            input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
+            input_ids = input_encoding['input_ids'].to(device)
+            input_attention_mask = input_encoding['attention_mask'].to(device)
 
             # target encoding
             target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
             target_ids = target_encoding['input_ids'].to(device)
-            target_ids[target_ids == model.config.pad_token_id] = -100
+            target_attention_mask = target_encoding['attention_mask'].to(device)
+
+            decoder_input_ids = target_ids.new_zeros(target_ids.shape)
+            decoder_input_ids[:, 1:] = target_ids[:, :-1].clone()
+            decoder_input_ids[:, 0] = model.bart.config.decoder_start_token_id
+
+            decoder_attention_mask = target_attention_mask.new_ones(target_attention_mask.shape)
+            decoder_attention_mask[:, 1:] = target_attention_mask[:, :-1].clone()
+
+            labels = target_ids.clone()
+            labels[labels == model.bart.config.pad_token_id] = -100
+
+            del target_ids
 
             # zero-out gradient
             optimizer.zero_grad()
 
             # forward pass
-            outputs = model(**input_encoding, labels=target_ids)
+            logits = model(input_ids=input_ids,
+                        attention_mask=input_attention_mask,
+                        decoder_input_ids=decoder_input_ids,
+                        decoder_attention_mask=decoder_attention_mask,
+                        section_wiki_encoding=section_wiki_encoding,
+                        game_wiki_encoding=game_wiki_encoding)
 
             # loss
-            loss = outputs.loss
+            logits = logits.reshape(-1, logits.shape[-1]).to(device)
+            labels = labels.reshape(-1).to(device)
+            loss = nn.CrossEntropyLoss(ignore_index=-100)(logits, labels)
             total_loss += float(loss)
             batch_num += 1
 
