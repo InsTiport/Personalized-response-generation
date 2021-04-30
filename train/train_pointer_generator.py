@@ -114,7 +114,13 @@ for epo in range(NUM_EPOCH):
     idx = 0
     for batch in train_iterator_with_progress:
         # input encoding
-        input_encoding = tokenizer(batch['question'], return_tensors='pt', padding=True, truncation=True)
+        input_encoding = tokenizer(
+            batch['question'],
+            return_tensors='pt',
+            padding=True,
+            truncation=True,
+            add_special_tokens=False
+        )
         input_ids = input_encoding['input_ids']
         input_ids = torch.transpose(input_ids, 0, 1).to(device)  # shape: (input_len, batch_size)
 
@@ -179,7 +185,13 @@ for epo in range(NUM_EPOCH):
         total_loss = 0
         for batch in valid_data_loader:
             # input encoding
-            input_encoding = tokenizer(batch['question'], return_tensors='pt', padding=True, truncation=True)
+            input_encoding = tokenizer(
+                batch['question'],
+                return_tensors='pt',
+                padding=True,
+                truncation=True,
+                add_special_tokens=False
+            )
             input_ids = input_encoding['input_ids']
             input_ids = torch.transpose(input_ids, 0, 1).to(device)  # shape: (input_len, batch_size)
 
@@ -189,14 +201,7 @@ for epo in range(NUM_EPOCH):
             target_ids = torch.transpose(target_ids, 0, 1).to(device)  # shape: (target_len, batch_size)
 
             # forward pass
-            if args.speaker:
-                speaker_id = [int(s.split('|')[1]) for s in batch['respondent']]
-                speaker_id = torch.tensor(speaker_id, dtype=torch.long).to(device)
-
-                outputs = model(x=input_ids, y=target_ids, speaker_id=speaker_id)
-                # outputs.shape: (target_len, batch_size, vocab_size)
-            else:
-                outputs = model(x=input_ids, y=target_ids)  # outputs.shape: (target_len, batch_size, vocab_size)
+            outputs = model(x=input_ids, y=target_ids)  # outputs.shape: (target_len, batch_size, vocab_size)
 
             # prepare labels for cross entropy by removing the first time stamp (<s>)
             labels = target_ids[1:, :]  # shape: (target_len - 1, batch_size)
@@ -208,7 +213,7 @@ for epo in range(NUM_EPOCH):
             # shape: ((target_len - 1) * batch_size, vocab_size)
 
             # compute loss and perform a step
-            criterion = nn.CrossEntropyLoss(ignore_index=1)  # ignore padding index
+            criterion = nn.NLLLoss(ignore_index=1)  # ignore padding index
             loss = criterion(outputs, labels)
 
             total_loss += float(loss)
