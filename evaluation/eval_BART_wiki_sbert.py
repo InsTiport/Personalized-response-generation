@@ -9,7 +9,7 @@ from tqdm import tqdm
 from transformers import BartForConditionalGeneration, BartTokenizer
 sys.path.insert(0, os.path.abspath('..'))
 from interview_dataset import InterviewDataset
-from model.Bart_wiki import Bart_wiki_model
+from model.Bart_wiki import Bart_Wiki
 from sentence_transformers import SentenceTransformer
 
 
@@ -120,9 +120,9 @@ if device == 'cuda':
     torch.cuda.set_device(DEVICE_ID)  # use an unoccupied GPU
 
 # load model
-sentence_encoder = SentenceTransformer('paraphrase-distilroberta-base-v1').to('cpu')
+sentence_encoder = SentenceTransformer('paraphrase-distilroberta-base-v1').to(device)
 SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}.pt')
-model = Bart_wiki_model().to(device)
+model = Bart_Wiki.from_pretrained('facebook/bart-base').to(device)
 model.load_state_dict(torch.load(SAVE_PATH, map_location=device))
 
 model.eval()
