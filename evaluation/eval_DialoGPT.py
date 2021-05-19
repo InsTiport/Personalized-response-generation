@@ -147,16 +147,25 @@ with torch.no_grad():
     batch_num = 0
     total_loss = 0
     for batch in tqdm(test_data_loader):
-        batch_q = [s + tokenizer.eos_token for s in batch['question']]  # list of strings with len = bsz
-        batch_r = [s + tokenizer.eos_token for s in batch['response']]  # list of strings with len = bsz
+        batch_q = batch['question']  # list of strings with len = bsz
+        batch_r = batch['response']  # list of strings with len = bsz
         # concatenate questions and responses together
         inputs = [q + r for q, r in zip(batch_q, batch_r)]
 
         # input encoding
         input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
-        # prepare labels, by masking out padding tokens (exclude them while computing loss)
+
+        # encoding for questions, needed for masking out question part
+        question_encoding = tokenizer(
+            batch_q,
+            return_tensors='pt',
+            padding='max_length',
+            max_length=input_encoding['input_ids'].shape[-1]
+        )
+
+        # labels, by masking out padding tokens and question part (exclude them while computing loss)
         labels = input_encoding['input_ids'].detach().clone()
-        labels[input_encoding['attention_mask'] == 0] = -100
+        labels[labels == question_encoding['input_ids']] = -100
 
         # forward pass
         outputs = model(**input_encoding, labels=labels)
@@ -168,7 +177,7 @@ with torch.no_grad():
 
         prompts = batch['question']
         input_encoding = tokenizer(
-            [prompt + tokenizer.eos_token for prompt in prompts],
+            prompts,
             return_tensors='pt',
             padding=True,
             truncation=True
