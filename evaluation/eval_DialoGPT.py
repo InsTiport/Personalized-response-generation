@@ -161,7 +161,7 @@ with torch.no_grad():
             return_tensors='pt',
             padding='max_length',
             max_length=input_encoding['input_ids'].shape[-1]
-        )
+        ).to(device)
 
         # labels, by masking out padding tokens and question part (exclude them while computing loss)
         labels = input_encoding['input_ids'].detach().clone()
