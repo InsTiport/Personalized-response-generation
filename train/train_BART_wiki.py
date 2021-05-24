@@ -1,6 +1,6 @@
 import argparse
 from matplotlib import pyplot as plt
-from transformers import BartModel, BartTokenizer
+from transformers import BartTokenizer
 from transformers import AdamW
 from sentence_transformers import SentenceTransformer
 import torch
@@ -9,9 +9,10 @@ import numpy as np
 import os
 import tqdm
 import sys
+
 sys.path.insert(0, os.path.abspath('..'))
 from interview_dataset import InterviewDataset
-from model.Bart_wiki import Bart_wiki_model
+from model.BartWiki import BartWiki
 
 # setup args
 arg_parser = argparse.ArgumentParser()
@@ -67,7 +68,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 if device == 'cuda':
     torch.cuda.set_device(DEVICE_ID)  # use an unoccupied GPU
 # load model
-model = Bart_wiki_model().to(device)
+model = BartWiki.from_pretrained('facebook/bart-base').to(device)
 sentence_encoder = SentenceTransformer('paraphrase-distilroberta-base-v1').to('cpu')
 # load tokenizer
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
@@ -119,48 +120,30 @@ for epo in range(NUM_EPOCH):
             game_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_gw))
 
             # input encoding
-            input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
-            input_ids = input_encoding['input_ids'].to(device)
-            input_attention_mask = input_encoding['attention_mask'].to(device)
+            input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True).to(device)
 
             # target encoding
             # this kind of embedding will make the input to BART decoder be like </s> <s> content </s>
             target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
             target_ids = target_encoding['input_ids'].to(device)
-            target_attention_mask = target_encoding['attention_mask'].to(device)
-
-            decoder_input_ids = target_ids.new_zeros(target_ids.shape)
-            decoder_input_ids[:, 1:] = target_ids[:, :-1].clone()
-            decoder_input_ids[:, 0] = model.bart.config.decoder_start_token_id
-
-            decoder_attention_mask = target_attention_mask.new_ones(target_attention_mask.shape)
-            decoder_attention_mask[:, 1:] = target_attention_mask[:, :-1].clone()
-
-            labels = target_ids.clone()
-            labels[labels == model.bart.config.pad_token_id] = -100
-
+            target_ids[target_ids == model.config.pad_token_id] = -100
 
             # zero-out gradient
             optimizer.zero_grad()
 
             # forward pass
-            logits = model(input_ids=input_ids,
-                            attention_mask=input_attention_mask,
-                            decoder_input_ids=decoder_input_ids,
-                            decoder_attention_mask=decoder_attention_mask,
-                            section_wiki_encoding=section_wiki_encoding,
+            outputs = model(**input_encoding,
+                            labels=target_ids, 
+                            section_wiki_encoding=section_wiki_encoding, 
                             game_wiki_encoding=game_wiki_encoding)
-
-
-            # compute loss and perform a step
-            logits = logits.reshape(-1, logits.shape[-1]).to(device)
-            labels = labels.reshape(-1).to(device)
-            loss = nn.CrossEntropyLoss(ignore_index=-100)(logits, labels)
+            
+            # backward pass
+            loss = outputs.loss
             loss.backward()
             optimizer.step()
 
+            # logging
             idx += 1
-
             total_loss += float(loss)
             train_iterator_with_progress.set_description(f'Epoch {epo}')
             train_iterator_with_progress.set_postfix({'Loss': loss.item()})
@@ -207,42 +190,25 @@ for epo in range(NUM_EPOCH):
             game_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_gw))
 
             # input encoding
-            input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
-            input_ids = input_encoding['input_ids'].to(device)
-            input_attention_mask = input_encoding['attention_mask'].to(device)
+            input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True).to(device)
 
             # target encoding
+            # this kind of embedding will make the input to BART decoder be like </s> <s> content </s>
             target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
             target_ids = target_encoding['input_ids'].to(device)
-            target_attention_mask = target_encoding['attention_mask'].to(device)
-
-            decoder_input_ids = target_ids.new_zeros(target_ids.shape)
-            decoder_input_ids[:, 1:] = target_ids[:, :-1].clone()
-            decoder_input_ids[:, 0] = model.bart.config.decoder_start_token_id
-
-            decoder_attention_mask = target_attention_mask.new_ones(target_attention_mask.shape)
-            decoder_attention_mask[:, 1:] = target_attention_mask[:, :-1].clone()
-
-            labels = target_ids.clone()
-            labels[labels == model.bart.config.pad_token_id] = -100
-
-            del target_ids
+            target_ids[target_ids == model.config.pad_token_id] = -100
 
             # zero-out gradient
             optimizer.zero_grad()
 
             # forward pass
-            logits = model(input_ids=input_ids,
-                        attention_mask=input_attention_mask,
-                        decoder_input_ids=decoder_input_ids,
-                        decoder_attention_mask=decoder_attention_mask,
-                        section_wiki_encoding=section_wiki_encoding,
-                        game_wiki_encoding=game_wiki_encoding)
+            outputs = model(**input_encoding,
+                            labels=target_ids, 
+                            section_wiki_encoding=section_wiki_encoding, 
+                            game_wiki_encoding=game_wiki_encoding)
 
             # loss
-            logits = logits.reshape(-1, logits.shape[-1]).to(device)
-            labels = labels.reshape(-1).to(device)
-            loss = nn.CrossEntropyLoss(ignore_index=-100)(logits, labels)
+            loss = outputs.loss
             total_loss += float(loss)
             batch_num += 1
 
