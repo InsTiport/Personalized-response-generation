@@ -1,0 +1,3 @@
+[submodule "transformers_clone"]
+	path = transformers_clone
+	url = https://github.com/huggingface/transformers.git
