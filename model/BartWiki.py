@@ -22,11 +22,12 @@ def shift_tokens_right(input_ids: torch.Tensor, pad_token_id: int, decoder_start
 
     return shifted_input_ids
 
-class BartWiki(BartForConditionalGeneration):
+class BartWiki(BartForConditionalGeneration):    
     def __init__(self, config):
         super().__init__(config)
         self.model = BartModel(config)
         self.linear = nn.Linear(3 * self.model.config.d_model, self.model.config.vocab_size)
+        self.lm_head = nn.Linear(config.d_model, self.model.shared.num_embeddings, bias=False)
 
     def forward(
         self,
@@ -36,6 +37,7 @@ class BartWiki(BartForConditionalGeneration):
         decoder_attention_mask=None,
         head_mask=None,
         decoder_head_mask=None,
+        cross_attn_head_mask=None,
         encoder_outputs=None,
         past_key_values=None,
         inputs_embeds=None,
@@ -72,6 +74,7 @@ class BartWiki(BartForConditionalGeneration):
             decoder_attention_mask=decoder_attention_mask,
             head_mask=head_mask,
             decoder_head_mask=decoder_head_mask,
+            cross_attn_head_mask=cross_attn_head_mask,
             past_key_values=past_key_values,
             inputs_embeds=inputs_embeds,
             decoder_inputs_embeds=decoder_inputs_embeds,
@@ -80,13 +83,16 @@ class BartWiki(BartForConditionalGeneration):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
-        last_hidden_state = outputs.last_hidden_state
+        # temprorarily commented out
+        last_hidden_state = outputs[0]
+        # print(last_hidden_state.shape)
         out_seq_len = last_hidden_state.shape[1]
         batch_size = last_hidden_state.shape[0]
-        section_wiki_encoding = section_wiki_encoding.unsqueeze(1).expand(batch_size, out_seq_len, self.model.config.d_model).to(input_ids.device)
-        game_wiki_encoding = game_wiki_encoding.unsqueeze(1).expand(batch_size, out_seq_len, self.model.config.d_model).to(input_ids.device)
+        section_wiki_encoding = section_wiki_encoding.unsqueeze(1).expand(batch_size, out_seq_len, self.model.config.d_model).to(self.model.device)
+        game_wiki_encoding = game_wiki_encoding.unsqueeze(1).expand(batch_size, out_seq_len, self.model.config.d_model).to(self.model.device)
         with_wiki = torch.cat((last_hidden_state, section_wiki_encoding, game_wiki_encoding), dim=2)
         lm_logits = self.linear(with_wiki)
+        # lm_logits = self.lm_head(last_hidden_state)
 
         masked_lm_loss = None
         if labels is not None:
@@ -108,3 +114,33 @@ class BartWiki(BartForConditionalGeneration):
             encoder_hidden_states=outputs.encoder_hidden_states,
             encoder_attentions=outputs.encoder_attentions,
         )
+    
+    def prepare_inputs_for_generation(
+        self,
+        decoder_input_ids,
+        past=None,
+        attention_mask=None,
+        head_mask=None,
+        decoder_head_mask=None,
+        cross_attn_head_mask=None,
+        use_cache=None,
+        encoder_outputs=None,
+        **kwargs
+    ):
+        # cut decoder_input_ids if past is used
+        if past is not None:
+            decoder_input_ids = decoder_input_ids[:, -1:]
+
+        return {
+            "input_ids": None,  # encoder_outputs is defined. input_ids not needed
+            "encoder_outputs": encoder_outputs,
+            "past_key_values": past,
+            "decoder_input_ids": decoder_input_ids,
+            "attention_mask": attention_mask,
+            "head_mask": head_mask,
+            "decoder_head_mask": decoder_head_mask,
+            "cross_attn_head_mask": cross_attn_head_mask,
+            "use_cache": use_cache,  # change this to avoid caching (presumably for debugging)
+            "section_wiki_encoding": kwargs["section_wiki_encoding"],
+            "game_wiki_encoding": kwargs["game_wiki_encoding"]
+        }

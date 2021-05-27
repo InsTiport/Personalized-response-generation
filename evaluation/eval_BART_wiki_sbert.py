@@ -183,7 +183,9 @@ with torch.no_grad():
                 max_length=model.config.max_position_embeddings,
                 num_beams=num_beams,
                 early_stopping=True,
-                num_return_sequences=num_return_sentences
+                num_return_sequences=num_return_sentences,
+                section_wiki_encoding=section_wiki_encoding,
+                game_wiki_encoding=game_wiki_encoding
             )
         else:
             model_res_ids = model.generate(
@@ -193,11 +195,14 @@ with torch.no_grad():
                 temperature=temperature,
                 top_p=top_p,
                 top_k=top_k,
-                num_return_sequences=num_return_sentences
+                num_return_sequences=num_return_sentences,
+                section_wiki_encoding=section_wiki_encoding,
+                game_wiki_encoding=game_wiki_encoding
             )
 
         # add generated responses and gold responses for future BLEU computation
         predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids]
+        print(predictions)
 
         tmp_predictions, tmp_responses = [], []
         for prediction, response in zip(predictions, batch['response']):
