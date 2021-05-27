@@ -9,7 +9,7 @@ from tqdm import tqdm
 from transformers import BartForConditionalGeneration, BartTokenizer
 sys.path.insert(0, os.path.abspath('..'))
 from interview_dataset import InterviewDataset
-from model.Bart_wiki import Bart_Wiki
+from model.BartWiki import BartWiki
 from sentence_transformers import SentenceTransformer
 
 
@@ -33,7 +33,7 @@ arg_parser.add_argument(
 arg_parser.add_argument(
     '-b', '--batch_size',
     type=int,
-    default=5,
+    default=2,
     help='Specify the batch size of the model while it was trained'
 )
 
@@ -122,7 +122,7 @@ if device == 'cuda':
 # load model
 sentence_encoder = SentenceTransformer('paraphrase-distilroberta-base-v1').to(device)
 SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}.pt')
-model = Bart_Wiki.from_pretrained('facebook/bart-base').to(device)
+model = BartWiki.from_pretrained('facebook/bart-base').to(device)
 model.load_state_dict(torch.load(SAVE_PATH, map_location=device))
 
 model.eval()
@@ -154,69 +154,47 @@ with torch.no_grad():
         batch_sw = batch['section_wiki']
         batch_gw = batch['game_wiki']
 
+        # input encoding
+        input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True).to(device)
         section_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_sw))
         game_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_gw))
 
-        # input encoding
-        input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
-        input_ids = input_encoding['input_ids'].to(device)
-        input_attention_mask = input_encoding['attention_mask'].to(device)
-
         # target encoding
-        # this kind of embedding will make the input to BART decoder be like </s> <s> content </s>
         target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
         target_ids = target_encoding['input_ids'].to(device)
-        target_attention_mask = target_encoding['attention_mask'].to(device)
-
-        decoder_input_ids = target_ids.new_zeros(target_ids.shape)
-        decoder_input_ids[:, 1:] = target_ids[:, :-1].clone()
-        decoder_input_ids[:, 0] = model.bart.config.decoder_start_token_id
-
-        decoder_attention_mask = target_attention_mask.new_ones(target_attention_mask.shape)
-        decoder_attention_mask[:, 1:] = target_attention_mask[:, :-1].clone()
-
-        labels = target_ids.clone()
-        labels[labels == model.bart.config.pad_token_id] = -100
+        target_ids[target_ids == model.config.pad_token_id] = -100
 
         # forward pass
-        logits = model(input_ids=input_ids,
-                        attention_mask=input_attention_mask,
-                        decoder_input_ids=decoder_input_ids,
-                        decoder_attention_mask=decoder_attention_mask,
-                        section_wiki_encoding=section_wiki_encoding,
+        outputs = model(**input_encoding,
+                        labels=target_ids, 
+                        section_wiki_encoding=section_wiki_encoding, 
                         game_wiki_encoding=game_wiki_encoding)
 
         # loss
-        logits = logits.reshape(-1, logits.shape[-1]).to(device)
-        labels = labels.reshape(-1).to(device)
-        loss = nn.CrossEntropyLoss(ignore_index=-100)(logits, labels)
+        loss = outputs.loss
         total_loss += float(loss)
+
         batch_num += 1
 
         # generation
-        # if use_beam:
-        #     model_res_ids = model.generate(
-        #         input_encoding['input_ids'],
-        #         max_length=model.config.max_position_embeddings,
-        #         num_beams=num_beams,
-        #         early_stopping=True,
-        #         num_return_sequences=num_return_sentences
-        #     )
-        # else:
-        #     model_res_ids = model.generate(
-        #         input_encoding['input_ids'],
-        #         max_length=model.config.max_position_embeddings,
-        #         do_sample=True,
-        #         temperature=temperature,
-        #         top_p=top_p,
-        #         top_k=top_k,
-        #         num_return_sequences=num_return_sentences
-        #     )
-    
-        model_res_ids = model.decode_greedy(input_ids=input_ids,
-                                            attention_mask=input_attention_mask, 
-                                            section_wiki_encoding=section_wiki_encoding,
-                                            game_wiki_encoding=game_wiki_encoding)
+        if use_beam:
+            model_res_ids = model.generate(
+                input_encoding['input_ids'],
+                max_length=model.config.max_position_embeddings,
+                num_beams=num_beams,
+                early_stopping=True,
+                num_return_sequences=num_return_sentences
+            )
+        else:
+            model_res_ids = model.generate(
+                input_encoding['input_ids'],
+                max_length=model.config.max_position_embeddings,
+                do_sample=True,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                num_return_sequences=num_return_sentences
+            )
 
         # add generated responses and gold responses for future BLEU computation
         predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids]
