@@ -87,9 +87,8 @@ class BartWiki(BartForConditionalGeneration):
         last_hidden_state = outputs[0]
         # print(last_hidden_state.shape)
         out_seq_len = last_hidden_state.shape[1]
-        batch_size = last_hidden_state.shape[0]
-        section_wiki_encoding = section_wiki_encoding.unsqueeze(1).expand(batch_size, out_seq_len, self.model.config.d_model).to(self.model.device)
-        game_wiki_encoding = game_wiki_encoding.unsqueeze(1).expand(batch_size, out_seq_len, self.model.config.d_model).to(self.model.device)
+        section_wiki_encoding = section_wiki_encoding.unsqueeze(1).repeat(int(last_hidden_state.shape[0] / section_wiki_encoding.shape[0]), out_seq_len, 1).to(self.model.device)
+        game_wiki_encoding = game_wiki_encoding.unsqueeze(1).repeat(int(last_hidden_state.shape[0] / game_wiki_encoding.shape[0]), out_seq_len, 1).to(self.model.device)
         with_wiki = torch.cat((last_hidden_state, section_wiki_encoding, game_wiki_encoding), dim=2)
         lm_logits = self.linear(with_wiki)
         # lm_logits = self.lm_head(last_hidden_state)

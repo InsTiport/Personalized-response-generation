@@ -202,7 +202,6 @@ with torch.no_grad():
 
         # add generated responses and gold responses for future BLEU computation
         predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids]
-        print(predictions)
 
         tmp_predictions, tmp_responses = [], []
         for prediction, response in zip(predictions, batch['response']):
