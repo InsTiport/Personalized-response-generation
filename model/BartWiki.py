@@ -6,7 +6,7 @@ from transformers import BartModel
 from transformers import BartForConditionalGeneration
 
 sys.path.insert(0, os.path.abspath('..'))
-from transformers_clone.src.transformers.modeling_outputs import Seq2SeqLMOutput
+from transformers_fork.src.transformers.modeling_outputs import Seq2SeqLMOutput
 
 def shift_tokens_right(input_ids: torch.Tensor, pad_token_id: int, decoder_start_token_id: int):
     """
