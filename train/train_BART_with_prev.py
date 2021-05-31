@@ -2,6 +2,7 @@ import argparse
 from matplotlib import pyplot as plt
 from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import AdamW
+from sentence_transformers import SentenceTransformer
 import torch
 import numpy as np
 import os
@@ -9,9 +10,16 @@ import tqdm
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 from interview_dataset import InterviewDatasetWithPrevQR
+from model.BartPrevSBert import BartPrevSBert
 
 # setup args
 arg_parser = argparse.ArgumentParser()
+
+arg_parser.add_argument(
+    '--sbert',
+    action='store_true',
+    help=f'use sentence bert'
+)
 
 arg_parser.add_argument(
     '--gpu',
@@ -50,10 +58,16 @@ torch.manual_seed(0)
 np.random.seed(0)
 # model saving and logging paths
 os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
-MODEL_NAME = f'bart-base-background_bsz_{BATCH_SIZE}'
+if args.sbert:
+    MODEL_NAME = f'bart-base-background_sbert_bsz_{BATCH_SIZE}'
+else:
+    MODEL_NAME = f'bart-base-background_bsz_{BATCH_SIZE}'
 log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.log'), 'w')
 
-print(f'Training BART base with background for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
+if args.sbert:
+    print(f'Training BART base (with sbert) with background for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
+else:
+    print(f'Training BART base with background for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
 
 '''
 model and tokenizer
@@ -63,7 +77,11 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 if device == 'cuda':
     torch.cuda.set_device(DEVICE_ID)  # use an unoccupied GPU
 # load model
-model = BartForConditionalGeneration.from_pretrained('facebook/bart-base').to(device)
+if args.sbert:
+    model = BartPrevSBert.from_pretrained('facebook/bart-base').to(device)
+    sentence_encoder = SentenceTransformer('paraphrase-distilroberta-base-v1').to('cpu')
+else:
+    model = BartForConditionalGeneration.from_pretrained('facebook/bart-base').to(device)
 # load tokenizer
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
@@ -102,11 +120,8 @@ for epo in range(NUM_EPOCH):
         batch_prev_q = batch['prev_question']
         batch_prev_r = batch['prev_response']
 
-        inputs = [prev_q + tokenizer.sep_token + prev_r + tokenizer.sep_token + q
-                  for q, prev_q, prev_r in zip(batch_q, batch_prev_q, batch_prev_r)]
-
-        # input encoding
-        input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
+        # zero-out gradient
+        optimizer.zero_grad()
 
         # target encoding
         # this kind of embedding will make the input to BART decoder be like </s> <s> content </s>
@@ -114,11 +129,23 @@ for epo in range(NUM_EPOCH):
         target_ids = target_encoding['input_ids'].to(device)
         target_ids[target_ids == model.config.pad_token_id] = -100
 
-        # zero-out gradient
-        optimizer.zero_grad()
+        if not args.sbert:
+            inputs = [prev_q + tokenizer.sep_token + prev_r + tokenizer.sep_token + q
+                    for q, prev_q, prev_r in zip(batch_q, batch_prev_q, batch_prev_r)]
 
-        # forward pass
-        outputs = model(**input_encoding, labels=target_ids)
+            # input encoding
+            input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)          
+
+            # forward pass
+            outputs = model(**input_encoding, labels=target_ids)
+        else:
+            input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True).to(device)
+            prev_question_encoding = torch.tensor(sentence_encoder.encode(batch_prev_q))
+            prev_response_encoding = torch.tensor(sentence_encoder.encode(batch_prev_r))
+            outputs = model(**input_encoding,
+                            labels=target_ids, 
+                            prev_question_encoding=prev_question_encoding, 
+                            prev_response_encoding=prev_response_encoding)
 
         # compute loss and perform a step
         loss = outputs.loss
@@ -160,19 +187,28 @@ for epo in range(NUM_EPOCH):
             batch_prev_q = batch['prev_question']
             batch_prev_r = batch['prev_response']
 
-            inputs = [prev_q + tokenizer.sep_token + prev_r + tokenizer.sep_token + q
-                      for q, prev_q, prev_r in zip(batch_q, batch_prev_q, batch_prev_r)]
-
-            # input encoding
-            input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
-
             # target encoding
             target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
             target_ids = target_encoding['input_ids'].to(device)
             target_ids[target_ids == model.config.pad_token_id] = -100
 
-            # forward pass
-            outputs = model(**input_encoding, labels=target_ids)
+            if not args.sbert:
+                inputs = [prev_q + tokenizer.sep_token + prev_r + tokenizer.sep_token + q
+                        for q, prev_q, prev_r in zip(batch_q, batch_prev_q, batch_prev_r)]
+
+                # input encoding
+                input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
+
+                # forward pass
+                outputs = model(**input_encoding, labels=target_ids)
+            else:
+                input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True).to(device)
+                prev_question_encoding = torch.tensor(sentence_encoder.encode(batch_prev_q))
+                prev_response_encoding = torch.tensor(sentence_encoder.encode(batch_prev_r))
+                outputs = model(**input_encoding,
+                                labels=target_ids, 
+                                prev_question_encoding=prev_question_encoding, 
+                                prev_response_encoding=prev_response_encoding)
 
             # loss
             loss = outputs.loss
