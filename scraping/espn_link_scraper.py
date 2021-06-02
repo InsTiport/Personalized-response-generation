@@ -1,9 +1,8 @@
-from typing import Dict, List
-import tqdm
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 from scraping.utils import get_html
+
 
 def get_reports_link_for_one_sport(sport_url):
     years = range(2003, 2004, 1)
@@ -33,6 +32,7 @@ def get_reports_link_for_one_sport(sport_url):
                 if str(year) in link.get_text():
                     links.append(link.a.get('href'))
     return links
+
 
 if __name__ == '__main__':
     get_reports_link_for_one_sport('http://www.espn.com/college-football/news/archive')

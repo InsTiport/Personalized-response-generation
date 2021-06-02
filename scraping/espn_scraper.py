@@ -1,5 +1,4 @@
 import os
-import tqdm
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 from scraping.espn_text_scraper import get_report_text
@@ -11,6 +10,7 @@ root_archive_links = [
     'http://www.espn.com/mens-college-basketball/news/archive',
     'https://www.espn.com/mlb/news/archive'
 ]
+
 
 def main():
     os.chdir('../')
@@ -27,6 +27,7 @@ def main():
                     f.write(text)
                 report_id += 1
                 print(text)
+
 
 if __name__ == '__main__':
     main()
