@@ -1,5 +1,6 @@
 import os
 import sys
+from tqdm import tqdm
 sys.path.insert(0, os.path.abspath('..'))
 from scraping.espn_text_scraper import get_report_text
 from scraping.espn_link_scraper import get_reports_link_for_one_sport
@@ -28,14 +29,19 @@ def main():
     report_id = 0
     for archive_link in root_archive_links:
         report_links_found = get_reports_link_for_one_sport(archive_link)
-        for report_link in report_links_found:
-            print(report_link)
-            text = get_report_text(report_link)
-            if text != "":
-                with open(os.path.join('data', 'espn', str(report_id)), 'w') as f:
-                    f.write(text)
-                report_id += 1
-                print(text)
+        for report_link in tqdm(report_links_found):
+            # print(report_link)
+            try:
+                text = get_report_text(report_link)
+                if text != "":
+                    text = text.replace('ESPN.com: ', '').replace('/', ':')
+                    title = text[:text.index('\n')]
+                    with open(os.path.join('data', 'espn', f'{report_id}_{title}'), 'w') as f:
+                        f.write(text)
+                    report_id += 1
+                    # print(text)
+            except Exception:
+                continue
 
 
 if __name__ == '__main__':

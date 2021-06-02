@@ -24,9 +24,9 @@ def get_reports_link_for_one_sport(sport_url):
     print(f"Scraping links in {sport_url}")
     links = []
     for year in years:
-        print(f"{year}")
+        # print(f"{year}")
         for month in months:
-            print(f"\t{month}")
+            # print(f"\t{month}")
             soup = get_html(sport_url + f'?month={month}&year={year}')
             for link in soup.find_all('li'):
                 if str(year) in link.get_text():
