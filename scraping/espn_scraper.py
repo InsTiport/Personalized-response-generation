@@ -5,10 +5,19 @@ from scraping.espn_text_scraper import get_report_text
 from scraping.espn_link_scraper import get_reports_link_for_one_sport
 
 root_archive_links = [
+    # football
     'http://www.espn.com/college-football/news/archive',
     'http://www.espn.com/nfl/news/archive',
+    # basketball
     'http://www.espn.com/mens-college-basketball/news/archive',
-    'https://www.espn.com/mlb/news/archive'
+    'http://www.espn.com/womens-college-basketball/news/archive',
+    'http://www.espn.com/nba/news/archive',
+    # baseball
+    'https://www.espn.com/mlb/news/archive',
+    # golf
+    'https://www.espn.com/golf/news/archive',
+    # hockey
+    'https://www.espn.com/nhl/news/archive'
 ]
 
 
