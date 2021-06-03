@@ -17,7 +17,7 @@ def get_html(url):
     String:
         A BeautifulSoup object containing the HTML source page
     """
-
+    count = 0
     while True:
         try:
             r = requests.get(url)
@@ -25,5 +25,8 @@ def get_html(url):
             break
         except requests.exceptions.ConnectionError:
             sleep(1)
+            count += 1
+            if count >= 30:
+                break
 
     return soup
