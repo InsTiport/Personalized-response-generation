@@ -121,7 +121,7 @@ if device == 'cuda':
 SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}.pt')
 model = BartPrevSBert.from_pretrained('facebook/bart-base').to(device)
 sentence_encoder = SentenceTransformer('paraphrase-distilroberta-base-v1').to('cpu')
-# model.load_state_dict(torch.load(SAVE_PATH, map_location=device))
+model.load_state_dict(torch.load(SAVE_PATH, map_location=device))
 
 model.eval()
 
