@@ -7,7 +7,7 @@ import torch
 from tqdm import tqdm
 from transformers import BartForConditionalGeneration, BartTokenizer
 sys.path.insert(0, os.path.abspath('..'))
-from interview_dataset import InterviewDataset
+from interview_dataset import InterviewDatasetWithPrevQR
 
 # setup args
 arg_parser = argparse.ArgumentParser()
@@ -135,7 +135,7 @@ with torch.no_grad():
     '''
     DataLoader
     '''
-    test_dataset = InterviewDataset(data='test')
+    test_dataset = InterviewDatasetWithPrevQR(data='test')
     test_data_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=EVAL_BATCH_SIZE
