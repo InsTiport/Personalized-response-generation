@@ -8,7 +8,7 @@ import os
 import tqdm
 import sys
 sys.path.insert(0, os.path.abspath('..'))
-from interview_dataset import InterviewDataset
+from interview_dataset import InterviewDatasetWithPrevQR
 
 # setup args
 arg_parser = argparse.ArgumentParser()
@@ -86,7 +86,7 @@ for epo in range(NUM_EPOCH):
     '''
     DataLoader
     '''
-    dataset = InterviewDataset()
+    dataset = InterviewDatasetWithPrevQR()
     data_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=BATCH_SIZE,
@@ -140,7 +140,7 @@ for epo in range(NUM_EPOCH):
         '''
         DataLoader
         '''
-        valid_dataset = InterviewDataset(data='dev')
+        valid_dataset = InterviewDatasetWithPrevQR(data='dev')
         valid_data_loader = torch.utils.data.DataLoader(
             valid_dataset,
             batch_size=BATCH_SIZE,
