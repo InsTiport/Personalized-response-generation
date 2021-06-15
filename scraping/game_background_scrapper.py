@@ -4,7 +4,6 @@ import wikipediaapi
 import requests
 import sys
 import time
-from googlesearch import search
 
 sys.path.insert(0, os.path.abspath('..'))
 from scraping.scraper import ID_LOOKUP
@@ -115,6 +114,8 @@ if not os.path.exists(os.path.join('scraping', 'player_search_result')):
 else:
     player_search_result = json.loads(open(os.path.join('scraping', 'player_search_result'), 'r').readline())
 
+print(len(player_search_result))
+
 count = 0
 wiki_wiki = wikipediaapi.Wikipedia('en')
 S = requests.Session()
@@ -130,7 +131,7 @@ for name in player_names:
                 "srlimit": 1 # max number of pages to return
             }
             R = S.get(url=URL, params=PARAMS)
-            time.sleep(2)
+            # time.sleep(2)
             DATA = R.json()
             result_list = DATA['query']['search']
             if len(result_list) == 0:
@@ -148,6 +149,9 @@ for name in player_names:
                     print("no match for", name)
         except Exception as e:
             print(e)
+            with open(os.path.join('scraping', 'player_search_result'), 'w') as file_output:
+                json.dump(player_search_result, file_output)
+        if count % 100 == 0:
             with open(os.path.join('scraping', 'player_search_result'), 'w') as file_output:
                 json.dump(player_search_result, file_output)
 

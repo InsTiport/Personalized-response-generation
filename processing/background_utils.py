@@ -56,7 +56,3 @@ def get_wiki_index(title_name):
     else:
         index = title2index[title_name]
         return index
-
-# print(get_wiki_index("DIVISION I FOOTBALL CHAMPIONSHIP: YOUNGSTOWN STATE VS JAMES MADISON"))
-# print(title2index["DIVISION I FOOTBALL CHAMPIONSHIP: YOUNGSTOWN STATE VS JAMES MADISON"])
-# print(index2title[3469])
