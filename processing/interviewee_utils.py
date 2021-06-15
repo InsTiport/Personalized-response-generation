@@ -1,7 +1,7 @@
 import os
 import wikipediaapi
-from urllib.parse import unquote
 import json
+
 
 os.chdir('../')
 os.makedirs(os.path.join('data', 'interviewee_wiki'), exist_ok=True)
@@ -30,8 +30,23 @@ if len(downloaded) < len(interviewees):
             print(count)
 print('Finished downloading wiki.')
 
+
+def convert_name(interviewee_name):
+    name, sport_type = interviewee_name.split('_')
+    components = name.split()
+    if len(components) == 1:
+        return interviewee_name
+    else:
+        return components[1] + ', ' + components[0] + f'_{sport_type}'
+
+
 def get_wiki_page(interviewee_name):
+    interviewee_name = convert_name(interviewee_name)
     if interviewee_name not in interviewees:
         return None
     else:
-        return open(os.path.join('data', 'interviewee_wiki', interviewee_name), 'r').readlines()
+        return os.path.join('data', 'interviewee_wiki', interviewee_name)
+        # return open(os.path.join('data', 'interviewee_wiki', interviewee_name), 'r').readlines()
+
+    # print(get_wiki_page('Bo Pelini_football'))
+    # print(get_wiki_page('Tracy Claeys_football'))

@@ -1,10 +1,13 @@
 import datetime
 import os
 import re
+import sys
 from datetime import date
 import numpy as np
 from tqdm import tqdm
 import spacy
+sys.path.insert(0, os.path.abspath('..'))
+from interviewee_utils import get_wiki_page
 
 spacy.cli.download('en_core_web_lg')
 nlp = spacy.load('en_core_web_lg')
@@ -106,11 +109,12 @@ def get_matching_news(sport, y, m, d, interview_title):
 
 
 def main():
-    os.chdir('../')
+    # os.chdir('../')
     print('generating tsv file...')
     # c = 0
     with open(os.path.join('data', 'interview.txt'), 'r') as r:
-        counter = 0  # count how many interviews have at least one matching espn news
+        with_news_linking_counter = 0  # count how many interviews have at least one matching espn news
+        conference_counter = 0
         total_num_interviews = 0
 
         dataset = r.read()
@@ -131,6 +135,7 @@ def main():
             w.write('prev_question\t')
             w.write('prev_response\t')
             w.write('respondent\t')
+            w.write('respondent_wiki\t')
             w.write('question\t')
             w.write('response\n')
 
@@ -149,13 +154,6 @@ def main():
                 interview_id = lines[0][lines[0].index('[id]') + len('[id] '):]
                 sport_type = lines[1][lines[1].index('[sport_type]') + len('[sport_type] '):]
 
-                # filter out interviews not match our criteria
-                # exclude sport categories that are not linked to espn news
-                if sport_type not in ['football', 'basketball', 'baseball', 'golf', 'hockey']:
-                    continue
-
-                total_num_interviews += 1  # increment # of interviews processed
-
                 game_wiki_id = lines[2][lines[2].index('[game_wiki]') + len('[game_wiki] '):]
                 section_wiki_id = lines[3][lines[3].index('[section_wiki]') + len('[section_wiki] '):]
 
@@ -163,6 +161,28 @@ def main():
                 date = lines[5][lines[5].index('[date]') + len('[date] '):]
                 participants = lines[6][lines[6].index('[participants]') + len('[participants] '):]
                 participants_list = participants.split('|')
+
+                # filter out interviews not match our criteria
+                # exclude sport categories that are not linked to espn news
+                if sport_type not in ['football', 'basketball', 'baseball', 'golf', 'hockey']:
+                    continue
+                # exclude interviews with no wiki linking
+                if not (game_wiki_id or section_wiki_id):
+                    continue
+                # exclude interviews with no participant who has a wikipedia page linking
+                has_linked_participant = False
+                for participant in participants_list:
+                    has_linked_participant = get_wiki_page(participant + '_' + sport_type)
+                    if has_linked_participant:
+                        break
+                if not has_linked_participant:
+                    continue
+
+                total_num_interviews += 1  # increment # of interviews processed
+
+                if 'CONFERENCE' in title:
+                    conference_counter += 1
+
                 if 'THE MODERATOR' in participants_list:
                     participants_list.remove('THE MODERATOR')
                 participants_count.append(len(participants_list))
@@ -175,13 +195,14 @@ def main():
 
                 matched_news = get_matching_news(sport_type, year, month, day, title)
                 if len(matched_news) > 0:
-                    counter += 1
+                    with_news_linking_counter += 1
                 matched_news_path = [path for _, _, path in matched_news]
 
                 background = ''
                 question_list = []
                 response_list = []
                 respondent_list = []
+                respondent_wiki_list = []
                 already_counted = []  # records interviewees attending this interview who have already been counted
                 for i in range(7, len(lines)):
                     if '[background]' in lines[i]:
@@ -212,33 +233,44 @@ def main():
                         response_list.append(response)
                         respondent_list.append(respondent_with_sport_type +
                                                '|' + str(player2index[respondent_with_sport_type]))
+                        respondent_wiki = get_wiki_page(respondent_with_sport_type)
+                        respondent_wiki_list.append(respondent_wiki if respondent_wiki else '')
 
                 for i in range(1, len(question_list)):  # skip the first question bc it's the first
-                    w.write(f'{interview_id}\t')
-                    w.write(f'{sport_type}\t')
-                    w.write(f'{game_wiki_id}\t')
-                    w.write(f'{section_wiki_id}\t')
-                    w.write(f'{"|".join(matched_news_path)}\t')
-                    w.write(f'{title}\t')
-                    w.write(f'{date}\t')
-                    w.write(f'{participants}\t')
-                    w.write(f'{background}\t')
-                    w.write(f'{respondent_list[i - 1]}\t')
-                    w.write(f'{question_list[i - 1]}\t')
-                    w.write(f'{response_list[i - 1]}\t')
-                    w.write(f'{respondent_list[i]}\t')
-                    w.write(f'{question_list[i]}\t')
-                    w.write(f'{response_list[i]}\n')
+                    # make sure the respondent has a corresponding wiki page
+                    if respondent_wiki_list[i]:
+                        w.write(f'{interview_id}\t')
+                        w.write(f'{sport_type}\t')
+                        w.write(f'{game_wiki_id}\t')
+                        w.write(f'{section_wiki_id}\t')
+                        w.write(f'{"|".join(matched_news_path)}\t')
+                        w.write(f'{title}\t')
+                        w.write(f'{date}\t')
+                        w.write(f'{participants}\t')
+                        w.write(f'{background}\t')
+                        w.write(f'{respondent_list[i - 1]}\t')
+                        w.write(f'{question_list[i - 1]}\t')
+                        w.write(f'{response_list[i - 1]}\t')
+                        w.write(f'{respondent_list[i]}\t')
+                        w.write(f'{respondent_wiki_list[i]}\t')
+                        w.write(f'{question_list[i]}\t')
+                        w.write(f'{response_list[i]}\n')
 
         print(f'There are {len(player2index)} unique players.')
         print(f'Total number of interviews processed: {total_num_interviews}')
-        print(f'Number of interviews with at least one matching espn news: {counter}')
-        print(f'Percentage: {counter / total_num_interviews}')
+        print(f'Number of interviews with at least one matching espn news: {with_news_linking_counter}')
+        print(f'Percentage: {with_news_linking_counter / total_num_interviews}\n')
+        print(f'Number of non-conference interviews: {total_num_interviews - conference_counter}')
+        print(f'Percentage: {1 - (conference_counter / total_num_interviews)}')
 
         with open(os.path.join('data', 'interviewee.csv'), 'w') as w:
             w.write('name,ID,num_interview_attended\n')
             for name, interviewee_id in player2index.items():
                 w.write(f'{name},{interviewee_id},{player_interview_count[name]}\n')
+
+        with open(os.path.join('data', 'participants_count.txt'), 'w') as w:
+            for count in participants_count:
+                w.write(f'{count}\n')
 
     print('generating train, dev and test splits...')
     with open(os.path.join('data', 'interview_qa_with_espn.tsv'), 'r') as r:
