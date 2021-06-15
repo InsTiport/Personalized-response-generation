@@ -6,8 +6,8 @@ import numpy as np
 from tqdm import tqdm
 import spacy
 
-spacy.cli.download('en_core_web_sm')
-nlp = spacy.load('en_core_web_sm')
+spacy.cli.download('en_core_web_trf')
+nlp = spacy.load('en_core_web_trf')
 
 month_lookup = {
     'january': '01',
@@ -44,40 +44,63 @@ def get_matching_news(sport, y, m, d, interview_title):
     m = m.lower()
     event_day = d if len(d) > 1 else '0' + d
 
-    event_date = date.fromisoformat(f'{y}-{month_lookup[m]}-{event_day}')
+    event_day = date.fromisoformat(f'{y}-{month_lookup[m]}-{event_day}')
     news_titles = []
 
-    for news_title in os.scandir(os.path.join('data', 'espn', sport, y, m, d)):
-        news_titles.append((news_title.name, event_date))
+    # check for matching news at the day the interview takes place
+    event_day_path = os.path.join('data', 'espn', sport, y, m, d)
+    if os.path.exists(event_day_path):
+        for news_title in os.scandir(event_day_path):
+            news_titles.append((news_title.name, news_title.path, event_day))
 
-    next_day = event_date + datetime.timedelta(days=1)
-    for news_title in os.scandir(os.path.join(
-            'data', 'espn', sport, str(next_day.year),
-            str(rev_month_lookup[next_day.month]),
-            str(next_day.day)
-    )):
-        news_titles.append((news_title.name, next_day))
+    # check for matching news at the next day the interview takes place
+    next_day = event_day + datetime.timedelta(days=1)
+    next_day_path = os.path.join(
+        'data', 'espn', sport, str(next_day.year),
+        str(rev_month_lookup[next_day.month]),
+        str(next_day.day)
+    )
+    if os.path.exists(next_day_path):
+        for news_title in os.scandir(next_day_path):
+            news_titles.append((news_title.name, news_title.path, next_day))
 
-    matching_res = []
-    nps = [str(s).lower() for s in nlp(interview_title).ents]
-    print(nps)
-    for news_title, event_date in news_titles:
-        news_title_nps = [str(s).lower() for s in nlp(news_title).ents]
-        for i, s in enumerate(news_title_nps):
-            if '-' in s:
-                news_title_nps[i] = s[s.index('-') + 2:]
+    # check for matching news at the previous day the interview takes place
+    prev_day = event_day - datetime.timedelta(days=1)
+    prev_day_path = os.path.join(
+        'data', 'espn', sport, str(prev_day.year),
+        str(rev_month_lookup[prev_day.month]),
+        str(prev_day.day)
+    )
+    if os.path.exists(prev_day_path):
+        for news_title in os.scandir(prev_day_path):
+            news_titles.append((news_title.name, news_title.path, prev_day))
 
-        print(news_title, ' : ', news_title_nps)
-        for np in nps:
-            if np in news_title_nps:
-                with open(os.path.join(
-                        'data', 'espn', sport, str(event_date.year),
-                        str(rev_month_lookup[event_date.month]),
-                        str(event_date.day), news_title
-                )) as f:
-                    text = f.read()
+    matching_res = []  # store matched news
+    # named entities found in the title of the interview
+    nes = [str(s).lower() for s in nlp(interview_title).ents]
+    # print(nes)
+    for news_title, dir_path, event_date in news_titles:
+        news_title_nes = [str(s).lower() for s in nlp(news_title).ents]
+        # print(news_title, ' : ', news_title_nes)
 
-                matching_res.append((news_title, text))
+        is_matched = False
+        # find matching named entities (if any)
+        for ne in nes:
+            for news_title_ne in news_title_nes:
+                if ne in news_title_ne:  # if true, a match is found
+                    with open(os.path.join(
+                            'data', 'espn', sport, str(event_date.year),
+                            str(rev_month_lookup[event_date.month]),
+                            str(event_date.day), news_title
+                    )) as f:
+                        text = f.read()
+
+                    matching_res.append((news_title, text[len(news_title) + 1:], dir_path))
+                    is_matched = True
+                    break
+
+            if is_matched:
+                break
 
     return matching_res
 
@@ -86,14 +109,19 @@ def main():
     os.chdir('../')
     print('generating tsv file...')
     with open(os.path.join('data', 'interview.txt'), 'r') as r:
+        counter = 0  # count how many interviews have at least one matching espn news
+        total_num_interviews = 0
+
         dataset = r.read()
-        dataset = [interview for interview in dataset.split('[SEP]') if len(interview) > 10]  # don't include last one (\n)
+        # don't include last one (a single \n token)
+        dataset = [interview for interview in dataset.split('[SEP]') if len(interview) > 10]
 
         with open(os.path.join('data', 'interview_qa_with_espn.tsv'), 'w') as w:
             w.write('id\t')
             w.write('sport_type\t')
             w.write('game_wiki_id\t')
             w.write('section_wiki_id\t')
+            w.write('espn\t')
             w.write('title\t')
             w.write('date\t')
             w.write('participants\t')
@@ -114,8 +142,11 @@ def main():
 
                 interview_id = lines[0][lines[0].index('[id]') + len('[id] '):]
                 sport_type = lines[1][lines[1].index('[sport_type]') + len('[sport_type] '):]
-                if sport_type not in ['football', 'basketball', 'baseball', 'golf', 'hockey']:  # not linked to espn news
+                # exclude sport categories that are not linked to espn news
+                if sport_type not in ['football', 'basketball', 'baseball', 'golf', 'hockey']:
                     continue
+
+                total_num_interviews += 1  # increment # of interviews processed
 
                 game_wiki_id = lines[2][lines[2].index('[game_wiki]') + len('[game_wiki] '):]
                 section_wiki_id = lines[3][lines[3].index('[section_wiki]') + len('[section_wiki] '):]
@@ -124,13 +155,16 @@ def main():
                 date = lines[5][lines[5].index('[date]') + len('[date] '):]
                 participants = lines[6][lines[6].index('[participants]') + len('[participants] '):]
 
-                # link to espn
+                # link to espn news
                 month = re.search(r'[a-zA-Z]+', date).group(0)
                 day_and_year = date[len(month):]
                 day = day_and_year[:day_and_year.index(',')].strip()
                 year = day_and_year[day_and_year.index(',') + 1:].strip()
 
                 matched_news = get_matching_news(sport_type, year, month, day, title)
+                if len(matched_news) > 0:
+                    counter += 1
+                matched_news_path = [path for _, _, path in matched_news]
 
                 background = ''
                 question_list = []
@@ -163,19 +197,22 @@ def main():
                     w.write(f'{sport_type}\t')
                     w.write(f'{game_wiki_id}\t')
                     w.write(f'{section_wiki_id}\t')
+                    w.write(f'{"|".join(matched_news_path)}\t')
                     w.write(f'{title}\t')
                     w.write(f'{date}\t')
                     w.write(f'{participants}\t')
                     w.write(f'{background}\t')
-                    w.write(f'{respondent_list[i-1]}\t')
-                    w.write(f'{question_list[i-1]}\t')
-                    w.write(f'{response_list[i-1]}\t')
+                    w.write(f'{respondent_list[i - 1]}\t')
+                    w.write(f'{question_list[i - 1]}\t')
+                    w.write(f'{response_list[i - 1]}\t')
                     w.write(f'{respondent_list[i]}\t')
                     w.write(f'{question_list[i]}\t')
                     w.write(f'{response_list[i]}\n')
 
-            print(f'There are {len(player2index)} unique players.')
-
+        print(f'There are {len(player2index)} unique players.')
+        print(f'Total number of interviews processed: {total_num_interviews}')
+        print(f'Number of interviews with at least one matching espn news: {counter}')
+        print(f'Percentage: {counter / total_num_interviews}')
 
     print('generating train, dev and test splits...')
     with open(os.path.join('data', 'interview_qa_with_espn.tsv'), 'r') as r:
@@ -192,6 +229,7 @@ def main():
                 while idx < percentage * len(lines):
                     w.write(f'{lines[shuffle_indices[idx]]}\n')
                     idx += 1
+
 
 if __name__ == '__main__':
     main()

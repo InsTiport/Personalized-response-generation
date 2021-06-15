@@ -7,7 +7,7 @@ root_archive_links = [
     # football
     ('http://www.espn.com/college-football/news/archive', 'football'),
     ('http://www.espn.com/nfl/news/archive', 'football'),
-    basketball
+    # basketball
     ('http://www.espn.com/mens-college-basketball/news/archive', 'basketball'),
     ('http://www.espn.com/womens-college-basketball/news/archive', 'basketball'),
     ('http://www.espn.com/nba/news/archive', 'basketball'),
