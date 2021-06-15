@@ -6,8 +6,8 @@ import numpy as np
 from tqdm import tqdm
 import spacy
 
-spacy.cli.download('en_core_web_trf')
-nlp = spacy.load('en_core_web_trf')
+spacy.cli.download('en_core_web_lg')
+nlp = spacy.load('en_core_web_lg')
 
 month_lookup = {
     'january': '01',
@@ -108,6 +108,7 @@ def get_matching_news(sport, y, m, d, interview_title):
 def main():
     os.chdir('../')
     print('generating tsv file...')
+    # c = 0
     with open(os.path.join('data', 'interview.txt'), 'r') as r:
         counter = 0  # count how many interviews have at least one matching espn news
         total_num_interviews = 0
@@ -134,14 +135,21 @@ def main():
             w.write('response\n')
 
             player2index = dict()
+            player_interview_count = dict()
+            participants_count = []
 
             for interview in tqdm(dataset):
+                # c += 1
+                # if c == 50:
+                #     break
                 lines = interview.split('\n')
                 # some lines may be empty due to splitting, remove those
                 lines = [line.replace('End of FastScripts', '').strip() for line in lines if len(line) > 3]
 
                 interview_id = lines[0][lines[0].index('[id]') + len('[id] '):]
                 sport_type = lines[1][lines[1].index('[sport_type]') + len('[sport_type] '):]
+
+                # filter out interviews not match our criteria
                 # exclude sport categories that are not linked to espn news
                 if sport_type not in ['football', 'basketball', 'baseball', 'golf', 'hockey']:
                     continue
@@ -154,6 +162,10 @@ def main():
                 title = lines[4][lines[4].index('[title]') + len('[title] '):]
                 date = lines[5][lines[5].index('[date]') + len('[date] '):]
                 participants = lines[6][lines[6].index('[participants]') + len('[participants] '):]
+                participants_list = participants.split('|')
+                if 'THE MODERATOR' in participants_list:
+                    participants_list.remove('THE MODERATOR')
+                participants_count.append(len(participants_list))
 
                 # link to espn news
                 month = re.search(r'[a-zA-Z]+', date).group(0)
@@ -170,6 +182,7 @@ def main():
                 question_list = []
                 response_list = []
                 respondent_list = []
+                already_counted = []  # records interviewees attending this interview who have already been counted
                 for i in range(7, len(lines)):
                     if '[background]' in lines[i]:
                         background += lines[i][lines[i].index('[background]') + len('[background] '):] + ' '
@@ -184,13 +197,21 @@ def main():
                         respondent_with_sport_type = respondent + '_' + sport_type
                         if respondent_with_sport_type not in player2index.keys():
                             player2index[respondent_with_sport_type] = len(player2index)
+                            player_interview_count[respondent_with_sport_type] = 1
+                            already_counted.append(respondent_with_sport_type)
+                        else:
+                            if respondent_with_sport_type not in already_counted:
+                                player_interview_count[respondent_with_sport_type] += 1
+                                already_counted.append(respondent_with_sport_type)
+
                         response = response[response.index(':') + len(': '):]
                         if len(question.strip()) == 0 or len(response.strip()) == 0:
                             continue
 
                         question_list.append(question)
                         response_list.append(response)
-                        respondent_list.append(respondent + ' | ' + str(player2index[respondent_with_sport_type]))
+                        respondent_list.append(respondent_with_sport_type +
+                                               '|' + str(player2index[respondent_with_sport_type]))
 
                 for i in range(1, len(question_list)):  # skip the first question bc it's the first
                     w.write(f'{interview_id}\t')
@@ -213,6 +234,11 @@ def main():
         print(f'Total number of interviews processed: {total_num_interviews}')
         print(f'Number of interviews with at least one matching espn news: {counter}')
         print(f'Percentage: {counter / total_num_interviews}')
+
+        with open(os.path.join('data', 'interviewee.csv'), 'w') as w:
+            w.write('name,ID,num_interview_attended\n')
+            for name, interviewee_id in player2index.items():
+                w.write(f'{name},{interviewee_id},{player_interview_count[name]}\n')
 
     print('generating train, dev and test splits...')
     with open(os.path.join('data', 'interview_qa_with_espn.tsv'), 'r') as r:
