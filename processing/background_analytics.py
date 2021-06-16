@@ -1,14 +1,13 @@
 import os
 import sys
 import json
-import wikipediaapi
 from urllib.parse import unquote
-
 sys.path.insert(0, os.path.abspath('..'))
 from scraping.scraper import ID_LOOKUP
+import background_utils
+
 sports_type = list(ID_LOOKUP.keys())
 
-os.chdir('../')
 games_list = set()
 for sport in sports_type:
     SPORT_FOLDER_PATH = os.path.join('data', sport)
@@ -57,7 +56,6 @@ print(f'{championship_count} CHAMPIONSHIPS')
 
 
 section_search_result = json.loads(open(os.path.join('scraping', 'section_search_result'), 'r').readline())
-wiki_wiki = wikipediaapi.Wikipedia('en')
 
 count = 0
 qualified_result_count = 0
@@ -85,7 +83,10 @@ for section_title in section_search_result:
     title = unquote(title).replace('_', ' ')
     for i in range(100):
         try:
-            content = wiki_wiki.page(title).text
+            content_list = background_utils.get_wiki_page(section_title)[1]
+            content = ""
+            for line in content_list:
+                content += line
             break
         except Exception as e:
             print(e)
@@ -99,3 +100,13 @@ for section_title in section_search_result:
     print(f'{qualified_result_count} / {count} matched')
 
 print(f'{qualified_result_count} out of {len(section_search_result)}')
+
+player_count = 0
+for sport in sports_type:
+    SPORT_FOLDER_PATH = os.path.join('data', sport)
+    for player_folder in os.scandir(SPORT_FOLDER_PATH):
+        player_count += 1
+player_search_result = json.loads(open(os.path.join("scraping", "player_search_result")).readline())
+    
+print(f"{player_count} players")
+print(f"{len(player_search_result) / player_count * 100} have Wikipedia pages")

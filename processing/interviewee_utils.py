@@ -21,6 +21,7 @@ if len(downloaded) < len(interviewees):
     wiki_wiki = wikipediaapi.Wikipedia('en')
     for interviewee in interviewees:
         if interviewee not in downloaded:
+            print(interviewee)
             result = player_search_result[interviewee]
             wiki_page = wiki_wiki.page(result[0]['title'])
             with open(os.path.join('data', 'interviewee_wiki', interviewee), 'w') as wiki_file:
