@@ -70,7 +70,7 @@ class InterviewDatasetESPN(torch.utils.data.Dataset):
             for news in line[4].split('|'):
                 with open(news) as f:
                     all_news.append(f.read())
-            line[4] = all_news
+            line[4] = '|'.join(all_news)
 
         # wiki
         if self.use_wiki:
@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
     dataset = InterviewDatasetESPN(use_wiki=True, data='test')
 
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=False)
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=3, shuffle=False)
 
     batch = next(iter(data_loader))
     print(batch['question'])
@@ -129,6 +129,8 @@ if __name__ == '__main__':
     print(batch['prev_question'])
     print(batch['prev_response'])
 
+    for batch in data_loader:
+        print('here')
     print(f'Size of the dataset: {len(dataset)}')
 
     print(f'Time elapsed: {time.time() - start_time}')
