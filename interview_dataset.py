@@ -48,6 +48,51 @@ class InterviewDatasetWithPrevQR(torch.utils.data.Dataset):
         return linecache.getline(self.filename, 1).strip().split('\t')
 
 
+class InterviewDatasetESPN(torch.utils.data.Dataset):
+    # data can be 'train', 'dev' or 'test'
+    def __init__(self, data='train', use_wiki=False):
+        self.filename = os.path.join('data', f'interview_qa_{data}_with_espn.tsv')
+        self.use_wiki = use_wiki
+        with open(self.filename, 'r') as r:
+            lines = r.read()
+            self.len = len([line for line in lines.split('\n') if len(line) > 3]) - 1
+        del lines
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, item):
+        line = linecache.getline(self.filename, item + 2).strip().split('\t')
+
+        # espn
+        if len(line[4]) > 0:
+            all_news = []
+            for news in line[4].split('|'):
+                with open(news) as f:
+                    all_news.append(f.read())
+            line[4] = all_news
+
+        # wiki
+        if self.use_wiki:
+            # game wiki
+            if len(line[2]) > 0:
+                with open(os.path.join('data', 'wiki', line[2])) as f:
+                    line[2] = f.read()
+            # section wiki
+            if len(line[3]) > 0:
+                with open(os.path.join('data', 'wiki', line[3])) as f:
+                    line[3] = f.read()
+            # respondent wiki
+            if len(line[13]) > 0:
+                with open(line[13]) as f:
+                    line[13] = f.read()
+
+        return {k: v for k, v in zip(self._get_header(), line)}
+
+    def _get_header(self):
+        return linecache.getline(self.filename, 1).strip().split('\t')
+
+
 class InterviewDatasetAlternatives(torch.utils.data.Dataset):
     def __init__(self, data='train', use_wiki=False):
         self.filename = os.path.join('data', f'interview_qa_{data}.tsv')
@@ -72,9 +117,9 @@ class InterviewDatasetAlternatives(torch.utils.data.Dataset):
 if __name__ == '__main__':
     start_time = time.time()
 
-    dataset = InterviewDatasetWithPrevQR(use_wiki=True, data='dev')
+    dataset = InterviewDatasetESPN(use_wiki=True, data='test')
 
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False)
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=2, shuffle=False)
 
     batch = next(iter(data_loader))
     print(batch['question'])
