@@ -4,6 +4,15 @@ import linecache
 import time
 
 
+def matching_score(gold, ref):
+    counter = 0
+    for i in range(1, len(gold)):
+        if gold[:i] in ref:
+            counter += 1
+
+    return counter / len(gold)
+
+
 class InterviewDataset(torch.utils.data.Dataset):
     # data can be 'train', 'dev' or 'test'
     def __init__(self, data='train', use_wiki=False):
@@ -68,8 +77,24 @@ class InterviewDatasetESPN(torch.utils.data.Dataset):
         if len(line[4]) > 0:
             all_news = []
             for news in line[4].split('|'):
-                with open(news) as f:
-                    all_news.append(f.read())
+                try:
+                    with open(news) as f:
+                        all_news.append(f.read())
+                except FileNotFoundError:
+                    file_path_rev = news[::-1]
+                    folder_path = file_path_rev[file_path_rev.index('/'):][::-1]
+
+                    file_name = None
+                    best_score = 0
+                    for news_title in os.scandir(folder_path):
+                        matching = matching_score(news, news_title.path)
+                        if matching > best_score:
+                            file_name = news_title.path
+                            best_score = matching
+
+                    with open(file_name) as f:
+                        all_news.append(f.read())
+
             line[4] = '|'.join(all_news)
 
         # wiki
@@ -119,7 +144,7 @@ if __name__ == '__main__':
 
     dataset = InterviewDatasetESPN(use_wiki=True, data='test')
 
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size=3, shuffle=False)
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=300, shuffle=False)
 
     batch = next(iter(data_loader))
     print(batch['question'])
