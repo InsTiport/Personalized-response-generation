@@ -80,7 +80,7 @@ class InterviewDatasetESPN(torch.utils.data.Dataset):
                 try:
                     with open(news) as f:
                         all_news.append(f.read())
-                except FileNotFoundError or UnicodeEncodeError:
+                except:
                     file_path_rev = news[::-1]
                     folder_path = file_path_rev[file_path_rev.index('/'):][::-1]
 
