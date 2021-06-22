@@ -6,7 +6,7 @@ pandas~=1.2.2
 spacy~=3.0.3
 langdetect~=1.0.8
 pysbd~=0.3.4
-torch~=1.7.1
+torch
 torchtext~=0.8.1
 transformers~=4.3.3
 datasets~=1.4.1

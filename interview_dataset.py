@@ -124,7 +124,7 @@ if __name__ == '__main__':
 
     dataset = InterviewDatasetESPN(use_wiki=True, data='test')
 
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size=300, shuffle=False)
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False)
 
     batch = next(iter(data_loader))
     print(batch['question'])
@@ -134,8 +134,17 @@ if __name__ == '__main__':
     print(batch['prev_question'])
     print(batch['prev_response'])
 
+    counter = 0
+    total = 0
     for batch in data_loader:
-        print('here')
+        if batch['espn'][0] == '':
+            total += 0
+        else:
+            total += len(batch['espn'][0].split('|'))
+        counter += 1
+    print(counter)
+    print(total)
+    print(total / counter)
     print(f'Size of the dataset: {len(dataset)}')
 
     print(f'Time elapsed: {time.time() - start_time}')
