@@ -2,6 +2,7 @@
 import sys
 import os
 import json
+import pandas as pd
 from collections import OrderedDict
 import matplotlib.pyplot as plt
 sys.path.insert(0, os.path.abspath('..'))
@@ -11,28 +12,54 @@ from scraping.scraper import ID_LOOKUP
 os.chdir('../')
 
 interviewees = set() # names of all interviewees
-interview_count = dict() # interviewee --> count
+interviewee_interview_count = dict() # interviewee --> count
 
-sports_type = list(ID_LOOKUP.keys())
-for sport in sports_type:
-    SPORT_FOLDER_PATH = os.path.join('data', sport)
-    for player_folder in os.scandir(SPORT_FOLDER_PATH):
-        if player_folder.is_dir():
-            name_with_sport = player_folder.name + '_' + sport
-            interviewees.add(name_with_sport)
-            interview_count[name_with_sport] = len([file for file in os.scandir(os.path.join(SPORT_FOLDER_PATH, player_folder.name)) if file.is_file()])
+for mode in ['train', 'test', 'dev']:
+    with open(os.path.join('data', f'interview_qa_{mode}_with_prev_qr.tsv')) as f:
+        f.readline()
+        for line in f:
+            interviewee_name = line.split('\t')[-3]
+            interviewees.add(interviewee_name)
+            if interviewee_name in interviewee_interview_count:
+                interviewee_interview_count[interviewee_name].add(line.split('\t')[0])
+            else:
+                interviewee_interview_count[interviewee_name] = set()
+interview_count = [len(s) for name, s in interviewee_interview_count.items()]
+plt.hist(interview_count, bins=30, facecolor='blue', edgecolor='black', histtype='bar', alpha=0.5, cumulative=False, density=False)
+plt.xlabel('Number of interview session attended')
+plt.ylabel('Number of interviewees')
+plt.yscale('log')
+plt.savefig(os.path.join('figures', 'interview_count'))
 
-interview_num_stat = dict() # interview_count --> num_interviewees
-for interviewee, count in interview_count.items():
-    if count not in interview_num_stat:
-        interview_num_stat[count] = 1
-    else:
-        interview_num_stat[count] += 1
-interview_num_stat = OrderedDict(sorted(interview_num_stat.items(), key=lambda t: t[0]))
+# interview_num_stat = dict() # interview_count --> num_interviewees
+# for interviewee, count in interviewee_interview_count.items():
+#     if count not in interview_num_stat:
+#         interview_num_stat[count] = 1
+#     else:
+#         interview_num_stat[count] += 1
+# interview_num_stat = OrderedDict(sorted(interview_num_stat.items(), key=lambda t: t[0]))
 
-count_list = list()
-for interviewee, count in interview_count.items():
-    count_list.append(count)
-print(interview_num_stat)
-# plt.hist(count_list, color='blue', edgecolor='black', bins=int(1000))
-# plt.show()
+# count_list = list()
+# for interviewee, count in interviewee_interview_count.items():
+#     count_list.append(count)
+
+interviewee_utterance_count = dict()
+for mode in ['train', 'test', 'dev']:
+    with open(os.path.join('data', f'interview_qa_{mode}_with_prev_qr.tsv')) as f:
+        f.readline()
+        for line in f:
+            interviewee_name = line.split('\t')[-3]
+            if interviewee_name in interviewee_utterance_count:
+                interviewee_utterance_count[interviewee_name] += 1
+            else:
+                interviewee_utterance_count[interviewee_name] = 1
+print(len(interviewees), len(interviewee_utterance_count))
+
+utterance_count = [count for name, count in interviewee_utterance_count.items() if count <= 5000]
+print(len(utterance_count) / len(interviewee_utterance_count))
+plt.figure()
+values, bins, _ = plt.hist(utterance_count, bins=30, facecolor='blue', edgecolor='black', histtype='bar', alpha=0.5, cumulative=False, density=False)
+plt.xlabel('Number of utterances spoken')
+plt.ylabel('Number of interviewees')
+plt.yscale('log')
+plt.savefig(os.path.join('figures', 'utterance_count'))

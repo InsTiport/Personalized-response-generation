@@ -118,26 +118,6 @@ class InterviewDatasetESPN(torch.utils.data.Dataset):
         return linecache.getline(self.filename, 1).strip().split('\t')
 
 
-class InterviewDatasetAlternatives(torch.utils.data.Dataset):
-    def __init__(self, data='train', use_wiki=False):
-        self.filename = os.path.join('data', f'interview_qa_{data}.tsv')
-        self.use_wiki = use_wiki
-        with open(self.filename, 'r') as r:
-            self.lines = r.readlines()
-            self.len = len([line for line in self.lines if len(line) > 3]) - 1
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, item):
-        line = self.lines[item + 1].strip().split('\t')
-
-        return {k: v for k, v in zip(self._get_header(), line)}
-
-    def _get_header(self):
-        return self.lines[0].strip().split('\t')
-
-
 # sample usage of this class
 if __name__ == '__main__':
     start_time = time.time()
