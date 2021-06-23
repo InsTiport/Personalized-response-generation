@@ -66,11 +66,12 @@ model and tokenizer
 '''
 # CUDA settings
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu'
 if device == 'cuda':
     torch.cuda.set_device(DEVICE_ID)  # use an unoccupied GPU
 # load model
 model = BartWiki.from_pretrained('facebook/bart-base').to(device)
-sentence_encoder = SentenceTransformer('paraphrase-distilroberta-base-v1').to('cpu')
+sentence_encoder = SentenceTransformer('paraphrase-distilroberta-base-v1').to(device)
 # load tokenizer
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
