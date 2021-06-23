@@ -157,7 +157,7 @@ for epo in range(NUM_EPOCH):
         '''
         DataLoader
         '''
-        valid_dataset = InterviewDatasetESPN(data='dev')
+        valid_dataset = InterviewDatasetESPN(data='dev', use_wiki=True)
         valid_data_loader = torch.utils.data.DataLoader(
             valid_dataset,
             batch_size=BATCH_SIZE,
