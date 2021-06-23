@@ -26,8 +26,10 @@ class BartWiki(BartForConditionalGeneration):
     def __init__(self, config):
         super().__init__(config)
         self.model = BartModel(config)
-        self.linear = nn.Linear(3 * self.model.config.d_model, self.model.config.vocab_size)
-        self.lm_head = nn.Linear(config.d_model, self.model.shared.num_embeddings, bias=False)
+        self.register_buffer("final_logits_bias", torch.zeros((1, self.model.shared.num_embeddings)))
+        self.linear = nn.Linear(4 * self.model.config.d_model, self.model.config.d_model)
+        
+        self.init_weights()
 
     def forward(
         self,
@@ -48,7 +50,8 @@ class BartWiki(BartForConditionalGeneration):
         output_hidden_states=None,
         return_dict=None,
         section_wiki_encoding=None,
-        game_wiki_encoding=None
+        game_wiki_encoding=None,
+        respondent_wiki_encoding=None
     ):
         r"""
         labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`):
@@ -89,9 +92,9 @@ class BartWiki(BartForConditionalGeneration):
         out_seq_len = last_hidden_state.shape[1]
         section_wiki_encoding = section_wiki_encoding.unsqueeze(1).repeat(int(last_hidden_state.shape[0] / section_wiki_encoding.shape[0]), out_seq_len, 1).to(self.model.device)
         game_wiki_encoding = game_wiki_encoding.unsqueeze(1).repeat(int(last_hidden_state.shape[0] / game_wiki_encoding.shape[0]), out_seq_len, 1).to(self.model.device)
-        with_wiki = torch.cat((last_hidden_state, section_wiki_encoding, game_wiki_encoding), dim=2)
-        lm_logits = self.linear(with_wiki)
-        # lm_logits = self.lm_head(last_hidden_state)
+        respondent_wiki_encoding = respondent_wiki_encoding.unsqueeze(1).repeat(int(last_hidden_state.shape[0] / respondent_wiki_encoding.shape[0]), out_seq_len, 1).to(self.model.device)
+        with_wiki = torch.cat((last_hidden_state, section_wiki_encoding, game_wiki_encoding, respondent_wiki_encoding), dim=2)
+        lm_logits = self.lm_head(nn.ReLU()(self.linear(with_wiki))) + self.final_logits_bias
 
         masked_lm_loss = None
         if labels is not None:
@@ -141,5 +144,6 @@ class BartWiki(BartForConditionalGeneration):
             "cross_attn_head_mask": cross_attn_head_mask,
             "use_cache": use_cache,  # change this to avoid caching (presumably for debugging)
             "section_wiki_encoding": kwargs["section_wiki_encoding"],
-            "game_wiki_encoding": kwargs["game_wiki_encoding"]
+            "game_wiki_encoding": kwargs["game_wiki_encoding"],
+            "respondent_wiki_encoding": kwargs["respondent_wiki_encoding"]
         }

@@ -11,8 +11,9 @@ import tqdm
 import sys
 
 sys.path.insert(0, os.path.abspath('..'))
-from interview_dataset import InterviewDataset
+from interview_dataset import InterviewDatasetESPN
 from model.BartWiki import BartWiki
+from SBERT_filtering import find_top_k
 
 # setup args
 arg_parser = argparse.ArgumentParser()
@@ -69,7 +70,7 @@ if device == 'cuda':
     torch.cuda.set_device(DEVICE_ID)  # use an unoccupied GPU
 # load model
 model = BartWiki.from_pretrained('facebook/bart-base').to(device)
-sentence_encoder = SentenceTransformer('paraphrase-distilroberta-base-v1').to('cpu')
+sentence_encoder = SentenceTransformer('paraphrase-distilroberta-base-v1').to(device)
 # load tokenizer
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
@@ -97,7 +98,7 @@ for epo in range(NUM_EPOCH):
     '''
     DataLoader
     '''
-    dataset = InterviewDataset(use_wiki=True)
+    dataset = InterviewDatasetESPN(use_wiki=True)
     data_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=BATCH_SIZE,
@@ -113,11 +114,20 @@ for epo in range(NUM_EPOCH):
 
             batch_q = batch['question']
             batch_r = batch['response']
-            batch_sw = batch['section_wiki']
-            batch_gw = batch['game_wiki']
+            batch_game_wiki = batch['game_wiki_id']
+            batch_section_wiki = batch['section_wiki_id']
+            batch_respondent_wiki = batch['respondent_wiki']
+            for i in range(len(batch_q)):
+                if batch_game_wiki[i] != '':
+                    batch_game_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_game_wiki[i]))
+                if batch_section_wiki[i] != '':
+                    batch_section_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_section_wiki[i]))
+                if batch_respondent_wiki[i] != '':
+                    batch_respondent_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_respondent_wiki[i]))
 
-            section_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_sw))
-            game_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_gw))
+            section_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_section_wiki))
+            game_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_game_wiki))
+            respondent_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_respondent_wiki))
 
             # input encoding
             input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True).to(device)
@@ -135,7 +145,8 @@ for epo in range(NUM_EPOCH):
             outputs = model(**input_encoding,
                             labels=target_ids, 
                             section_wiki_encoding=section_wiki_encoding, 
-                            game_wiki_encoding=game_wiki_encoding)
+                            game_wiki_encoding=game_wiki_encoding,
+                            respondent_wiki_encoding=respondent_wiki_encoding)
             
             # backward pass
             loss = outputs.loss
@@ -171,7 +182,7 @@ for epo in range(NUM_EPOCH):
         '''
         DataLoader
         '''
-        valid_dataset = InterviewDataset(data='dev', use_wiki=True)
+        valid_dataset = InterviewDatasetESPN(data='dev', use_wiki=True)
         valid_data_loader = torch.utils.data.DataLoader(
             valid_dataset,
             batch_size=BATCH_SIZE,
@@ -183,11 +194,20 @@ for epo in range(NUM_EPOCH):
         for batch in valid_data_loader:
             batch_q = batch['question']
             batch_r = batch['response']
-            batch_sw = batch['section_wiki']
-            batch_gw = batch['game_wiki']
+            batch_game_wiki = batch['game_wiki_id']
+            batch_section_wiki = batch['section_wiki_id']
+            batch_respondent_wiki = batch['respondent_wiki']
+            for i in range(len(batch_q)):
+                if batch_game_wiki[i] != '':
+                    batch_game_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_game_wiki[i]))
+                if batch_section_wiki[i] != '':
+                    batch_section_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_section_wiki[i]))
+                if batch_respondent_wiki[i] != '':
+                    batch_respondent_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_respondent_wiki[i]))
 
-            section_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_sw))
-            game_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_gw))
+            section_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_section_wiki))
+            game_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_game_wiki))
+            respondent_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_respondent_wiki))
 
             # input encoding
             input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True).to(device)
@@ -205,7 +225,8 @@ for epo in range(NUM_EPOCH):
             outputs = model(**input_encoding,
                             labels=target_ids, 
                             section_wiki_encoding=section_wiki_encoding, 
-                            game_wiki_encoding=game_wiki_encoding)
+                            game_wiki_encoding=game_wiki_encoding,
+                            respondent_wiki_encoding=respondent_wiki_encoding)
 
             # loss
             loss = outputs.loss
