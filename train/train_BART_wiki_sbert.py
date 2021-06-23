@@ -66,7 +66,6 @@ model and tokenizer
 '''
 # CUDA settings
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-device = 'cpu'
 if device == 'cuda':
     torch.cuda.set_device(DEVICE_ID)  # use an unoccupied GPU
 # load model
