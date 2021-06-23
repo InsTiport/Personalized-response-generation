@@ -16,7 +16,7 @@ def find_top_k(query, text, k=6):
     query_vec = np.expand_dims(model.encode(query), axis=0)
     sentence_vec = model.encode(sentences)
 
-    score = softmax(cosine_similarity(query_vec, sentence_vec).squeeze())
+    score = cosine_similarity(query_vec, sentence_vec).squeeze()
 
     sorted_score = np.argsort(score)
 
@@ -76,8 +76,8 @@ def main():
     January 7, 2017 - Youngstown St. vs. James Madison via YouTube
     '''
 
-    find_top_p(q, t)
-    find_top_k(q, t)
+    print(find_top_p(q, t))
+    print(find_top_k(q, t))
 
 
 if __name__ == '__main__':

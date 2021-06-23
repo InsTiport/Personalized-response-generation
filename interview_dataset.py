@@ -127,24 +127,26 @@ if __name__ == '__main__':
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False)
 
     batch = next(iter(data_loader))
-    print(batch['question'])
-    print(batch['response'])
-    # print(batch['game_wiki'])
-    # print(batch['section_wiki'])
-    print(batch['prev_question'])
-    print(batch['prev_response'])
+    # print(batch['question'])
+    # print(batch['response'])
+    # print(batch['respondent'])
+    # print(batch['game_wiki_id'])
+    # print(batch['section_wiki_id'])
+    # print(batch['respondent_wiki'])
+    # print(batch['prev_question'])
+    # print(batch['prev_response'])
 
-    counter = 0
-    total = 0
-    for batch in data_loader:
-        if batch['espn'][0] == '':
-            total += 0
-        else:
-            total += len(batch['espn'][0].split('|'))
-        counter += 1
-    print(counter)
-    print(total)
-    print(total / counter)
+    # counter = 0
+    # total = 0
+    # for batch in data_loader:
+    #     if batch['espn'][0] == '':
+    #         total += 0
+    #     else:
+    #         total += len(batch['espn'][0].split('|'))
+    #     counter += 1
+    # print(counter)
+    # print(total)
+    # print(total / counter)
     print(f'Size of the dataset: {len(dataset)}')
 
     print(f'Time elapsed: {time.time() - start_time}')
