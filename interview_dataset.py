@@ -101,16 +101,29 @@ class InterviewDatasetESPN(torch.utils.data.Dataset):
         if self.use_wiki:
             # game wiki
             if len(line[2]) > 0:
-                with open(os.path.join('data', 'wiki', line[2])) as f:
-                    line[2] = f.read()
+                try:
+                    with open(os.path.join('data', 'wiki', line[2])) as f:
+                        line[2] = f.read()
+                except FileNotFoundError:
+                    # do nothing
+                    line[2] = line[2]
+                    print(line[2])
             # section wiki
             if len(line[3]) > 0:
-                with open(os.path.join('data', 'wiki', line[3])) as f:
-                    line[3] = f.read()
+                try:
+                    with open(os.path.join('data', 'wiki', line[3])) as f:
+                        line[3] = f.read()
+                except FileNotFoundError:
+                    line[3] = line[3]
+                    print(line[3])
             # respondent wiki
             if len(line[13]) > 0:
-                with open(line[13]) as f:
-                    line[13] = f.read()
+                try:
+                    with open(line[13]) as f:
+                        line[13] = f.read()
+                except FileNotFoundError:
+                    line[13] = line[13]
+                    print(line[13])
 
         return {k: v for k, v in zip(self._get_header(), line)}
 
