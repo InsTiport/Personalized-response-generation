@@ -51,10 +51,10 @@ torch.manual_seed(0)
 np.random.seed(0)
 # model saving and logging paths
 os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
-MODEL_NAME = f'bart-base-background_bsz_{BATCH_SIZE}'
+MODEL_NAME = f'bart-wiki-concat_bsz_{BATCH_SIZE}'
 log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.log'), 'w')
 
-print(f'Training BART base with background for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
+print(f'Training BART wiki with concatenation for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
 
 '''
 model and tokenizer

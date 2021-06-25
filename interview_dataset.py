@@ -135,11 +135,11 @@ class InterviewDatasetESPN(torch.utils.data.Dataset):
 if __name__ == '__main__':
     start_time = time.time()
 
-    dataset = InterviewDatasetESPN(use_wiki=True, data='test')
-
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False)
-
-    batch = next(iter(data_loader))
+    # dataset = InterviewDatasetESPN(use_wiki=True, data='train')
+    #
+    # data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False)
+    #
+    # batch = next(iter(data_loader))
     # print(batch['question'])
     # print(batch['response'])
     # print(batch['respondent'])
@@ -148,6 +148,28 @@ if __name__ == '__main__':
     # print(batch['respondent_wiki'])
     # print(batch['prev_question'])
     # print(batch['prev_response'])
+
+    respondent_set = set()
+    utterance_count = 0
+    word_count = 0
+    import pysbd
+    seg = pysbd.Segmenter(language='en', clean=False)
+
+    for file_type in ['train', 'dev', 'test']:
+        dataset = InterviewDatasetESPN(use_wiki=True, data=file_type)
+
+        data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False)
+
+        for batch in data_loader:
+            respondent_set.add(batch['respondent'][0])
+            utterance_count += len([sentence for sentence in list(seg.segment(batch['question'][0]))])
+            utterance_count += len([sentence for sentence in list(seg.segment(batch['response'][0]))])
+            word_count += len(batch['question'][0].split())
+            word_count += len(batch['response'][0].split())
+
+    print(f'There are {len(respondent_set)} unique interviewees.')
+    print(f'There are {utterance_count} utterances.')
+    print(f'There are {word_count} words.')
 
     # counter = 0
     # total = 0
@@ -160,6 +182,6 @@ if __name__ == '__main__':
     # print(counter)
     # print(total)
     # print(total / counter)
-    print(f'Size of the dataset: {len(dataset)}')
+    # print(f'Size of the dataset: {len(dataset)}')
 
     print(f'Time elapsed: {time.time() - start_time}')

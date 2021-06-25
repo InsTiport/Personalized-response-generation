@@ -8,7 +8,7 @@ import os
 import tqdm
 import sys
 sys.path.insert(0, os.path.abspath('..'))
-from interview_dataset import InterviewDatasetWithPrevQR
+from interview_dataset import InterviewDatasetESPN
 
 # setup args
 arg_parser = argparse.ArgumentParser()
@@ -53,7 +53,7 @@ os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
 MODEL_NAME = f'bart-base-prev-concat_bsz_{BATCH_SIZE}'
 log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.log'), 'w')
 
-print(f'Training BART base with background for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
+print(f'Training BART with prev q/r (concat) with background for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
 
 '''
 model and tokenizer
@@ -86,7 +86,7 @@ for epo in range(NUM_EPOCH):
     '''
     DataLoader
     '''
-    dataset = InterviewDatasetWithPrevQR()
+    dataset = InterviewDatasetESPN()
     data_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=BATCH_SIZE,
@@ -145,7 +145,7 @@ for epo in range(NUM_EPOCH):
         '''
         DataLoader
         '''
-        valid_dataset = InterviewDatasetWithPrevQR(data='dev')
+        valid_dataset = InterviewDatasetESPN(data='dev')
         valid_data_loader = torch.utils.data.DataLoader(
             valid_dataset,
             batch_size=BATCH_SIZE,
