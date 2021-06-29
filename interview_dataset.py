@@ -5,7 +5,6 @@ import time
 import matplotlib.pyplot as plt
 from datasets import tqdm
 import seaborn as sns
-from train.SBERT_filtering import find_top_k
 
 
 def matching_score(gold, ref):

@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 from transformers import BartForConditionalGeneration, BartTokenizer
-from train.SBERT_filtering import find_top_k
+from SBERT_filtering import find_top_k
 
 sys.path.insert(0, os.path.abspath('..'))
 from interview_dataset import InterviewDatasetESPN

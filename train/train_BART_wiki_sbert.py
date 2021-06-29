@@ -4,7 +4,6 @@ from transformers import BartTokenizer
 from transformers import AdamW
 from sentence_transformers import SentenceTransformer
 import torch
-import torch.nn as nn
 import numpy as np
 import os
 import tqdm
