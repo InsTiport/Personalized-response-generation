@@ -192,21 +192,21 @@ if __name__ == '__main__':
 
             batch_q = batch['question']
             batch_r = batch['response']
-            batch_prev_q = batch['prev_question']
-            batch_prev_r = batch['prev_response']
-
-            inputs = [len((prev_q + prev_r + q).split()) + 2
-                      for q, prev_q, prev_r in zip(batch_q, batch_prev_q, batch_prev_r)]
-
+            # batch_prev_q = batch['prev_question']
+            # batch_prev_r = batch['prev_response']
+            #
+            # inputs = [len((prev_q + prev_r + q).split()) + 2
+            #           for q, prev_q, prev_r in zip(batch_q, batch_prev_q, batch_prev_r)]
+            inputs = [len(q.split()) for q in batch_q]
             input_len.extend(inputs)
 
     sns.set_theme()
     sns.set_context('paper')
-    sns.histplot(input_len, binrange=(0, 500))
-    plt.xlabel('Input length (number of words)')
+    sns.histplot(input_len, binrange=(0, 100), binwidth=1)
+    plt.xlabel('Response length (number of words)')
     plt.ylabel('Number of questions')
     # plt.show()
-    plt.savefig(os.path.join('figures', 'prev-qr-input-length-distribution.png'))
+    plt.savefig(os.path.join('figures', 'bart-input-length-distribution.png'))
 
 
     # print(f'There are {len(respondent_set)} unique interviewees.')

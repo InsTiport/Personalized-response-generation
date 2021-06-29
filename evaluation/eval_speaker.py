@@ -8,8 +8,9 @@ from torch import nn
 from tqdm import tqdm
 from transformers import BartTokenizer
 sys.path.insert(0, os.path.abspath('..'))
-from interview_dataset import InterviewDataset
 from model.Seq2Seq import Seq2Seq
+from interview_dataset import InterviewDatasetESPN
+from metrics.distinct_n import distinct_n_sentence_level
 
 # setup args
 arg_parser = argparse.ArgumentParser()
@@ -137,7 +138,7 @@ with torch.no_grad():
     '''
     DataLoader
     '''
-    test_dataset = InterviewDataset(data='test')
+    test_dataset = InterviewDatasetESPN(data='test')
     test_data_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=EVAL_BATCH_SIZE
@@ -145,6 +146,8 @@ with torch.no_grad():
 
     batch_num = 0
     total_loss = 0
+    distinct_one = []
+    distinct_two = []
     for batch in tqdm(test_data_loader):
         # input encoding
         input_encoding = tokenizer(batch['question'], return_tensors='pt', padding=True, truncation=True)
@@ -195,6 +198,10 @@ with torch.no_grad():
                 tmp_responses.append(response)
         predictions, responses = tmp_predictions, tmp_responses
 
+        for prediction in predictions:
+            distinct_one.append(distinct_n_sentence_level(prediction, 1))
+            distinct_two.append(distinct_n_sentence_level(prediction, 2))
+
         references = [[r] for r in responses]
         metric_bleu.add_batch(predictions=predictions, references=references)
         metric_BERTScore.add_batch(predictions=predictions, references=references)
@@ -209,11 +216,15 @@ with torch.no_grad():
     print(f'Perplexity: {perplexity}')
     print(f'BLEU: {round(score_bleu["score"], 1)} out of {round(100., 1)}')
     print(f'BertScore: {torch.mean(torch.tensor(score_bert_score["f1"]))}')
+    print(f'Distinct-1: {torch.mean(torch.tensor(distinct_one))}')
+    print(f'Distinct-2: {torch.mean(torch.tensor(distinct_two))}')
     # write results to file
     log_file.write(f'eval_bsz:{EVAL_BATCH_SIZE} ')
     log_file.write(f'perplexity:{round(perplexity, 2)} ')
     log_file.write(f'BLEU:{round(score_bleu["score"], 1)} ')
     log_file.write(f'BertScore:{torch.mean(torch.tensor(score_bert_score["f1"]))}\n')  # average F-1 of BERTScore
+    log_file.write(f'Distinct1:{torch.mean(torch.tensor(distinct_one))}\n')
+    log_file.write(f'Distinct2:{torch.mean(torch.tensor(distinct_two))}\n')
     log_file.close()
 
 # # sample predictions which get full BLEU score
