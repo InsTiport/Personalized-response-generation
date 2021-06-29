@@ -162,7 +162,7 @@ if __name__ == '__main__':
     for file_type in ['train', 'dev', 'test']:
         dataset = InterviewDatasetESPN(use_wiki=True, data=file_type)
 
-        data_loader = torch.utils.data.DataLoader(dataset, batch_size=50, shuffle=False)
+        data_loader = torch.utils.data.DataLoader(dataset, batch_size=1000, shuffle=False)
 
         for batch in tqdm(data_loader):
             # respondent_set.add(batch['respondent'][0])
@@ -189,7 +189,8 @@ if __name__ == '__main__':
 
             inputs = [wiki + q for q, wiki in zip(batch_q, batch_wiki)]
 
-            input_len.append(len(inputs[0].split()) + 1)
+            for inp in inputs:
+                input_len.append(len(inp.split()) + 1)
 
     sns.set_theme()
     sns.set_context('paper')
