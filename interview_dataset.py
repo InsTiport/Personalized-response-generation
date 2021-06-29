@@ -171,42 +171,42 @@ if __name__ == '__main__':
             # word_count += len(batch['question'][0].split())
             # word_count += len(batch['response'][0].split())
 
-            batch_q = batch['question']
-            batch_r = batch['response']
-            batch_game_wiki = batch['game_wiki_id']
-            batch_section_wiki = batch['section_wiki_id']
-            batch_respondent_wiki = batch['respondent_wiki']
-            for i in range(len(batch_q)):
-                if batch_game_wiki[i] != '':
-                    batch_game_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_game_wiki[i]))
-                if batch_section_wiki[i] != '':
-                    batch_section_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_section_wiki[i]))
-                if batch_respondent_wiki[i] != '':
-                    batch_respondent_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_respondent_wiki[i]))
-
-            batch_wiki = [f'{game_wiki.strip()}. {section_wiki.strip()}. {respondent_wiki.strip()}.'
-                          for game_wiki, section_wiki, respondent_wiki in
-                          zip(batch_game_wiki, batch_section_wiki, batch_respondent_wiki)]
-
-            inputs = [len(wiki + q) + 1 for q, wiki in zip(batch_q, batch_wiki)]
-
             # batch_q = batch['question']
             # batch_r = batch['response']
-            # batch_prev_q = batch['prev_question']
-            # batch_prev_r = batch['prev_response']
+            # batch_game_wiki = batch['game_wiki_id']
+            # batch_section_wiki = batch['section_wiki_id']
+            # batch_respondent_wiki = batch['respondent_wiki']
+            # for i in range(len(batch_q)):
+            #     if batch_game_wiki[i] != '':
+            #         batch_game_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_game_wiki[i]))
+            #     if batch_section_wiki[i] != '':
+            #         batch_section_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_section_wiki[i]))
+            #     if batch_respondent_wiki[i] != '':
+            #         batch_respondent_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_respondent_wiki[i]))
             #
-            # inputs = [len(prev_q + prev_r + q) + 2
-            #           for q, prev_q, prev_r in zip(batch_q, batch_prev_q, batch_prev_r)]
+            # batch_wiki = [f'{game_wiki.strip()}. {section_wiki.strip()}. {respondent_wiki.strip()}.'
+            #               for game_wiki, section_wiki, respondent_wiki in
+            #               zip(batch_game_wiki, batch_section_wiki, batch_respondent_wiki)]
+            #
+            # inputs = [len(wiki + q) + 1 for q, wiki in zip(batch_q, batch_wiki)]
+
+            batch_q = batch['question']
+            batch_r = batch['response']
+            batch_prev_q = batch['prev_question']
+            batch_prev_r = batch['prev_response']
+
+            inputs = [len((prev_q + prev_r + q).split()) + 2
+                      for q, prev_q, prev_r in zip(batch_q, batch_prev_q, batch_prev_r)]
 
             input_len.extend(inputs)
 
     sns.set_theme()
     sns.set_context('paper')
-    sns.histplot(input_len)
+    sns.histplot(input_len, binrange=(0, 500))
     plt.xlabel('Input length (number of words)')
     plt.ylabel('Number of questions')
     # plt.show()
-    plt.savefig(os.path.join('figures', 'wiki-concat-input-length-distribution.png'))
+    plt.savefig(os.path.join('figures', 'prev-qr-input-length-distribution.png'))
 
 
     # print(f'There are {len(respondent_set)} unique interviewees.')
