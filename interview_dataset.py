@@ -170,6 +170,7 @@ if __name__ == '__main__':
             # utterance_count += len([sentence for sentence in list(seg.segment(batch['response'][0]))])
             # word_count += len(batch['question'][0].split())
             # word_count += len(batch['response'][0].split())
+
             batch_q = batch['question']
             batch_r = batch['response']
             batch_game_wiki = batch['game_wiki_id']
@@ -187,10 +188,17 @@ if __name__ == '__main__':
                           for game_wiki, section_wiki, respondent_wiki in
                           zip(batch_game_wiki, batch_section_wiki, batch_respondent_wiki)]
 
-            inputs = [wiki + q for q, wiki in zip(batch_q, batch_wiki)]
+            inputs = [len(wiki + q) + 1 for q, wiki in zip(batch_q, batch_wiki)]
 
-            for inp in inputs:
-                input_len.append(len(inp.split()) + 1)
+            # batch_q = batch['question']
+            # batch_r = batch['response']
+            # batch_prev_q = batch['prev_question']
+            # batch_prev_r = batch['prev_response']
+            #
+            # inputs = [len(prev_q + prev_r + q) + 2
+            #           for q, prev_q, prev_r in zip(batch_q, batch_prev_q, batch_prev_r)]
+
+            input_len.extend(inputs)
 
     sns.set_theme()
     sns.set_context('paper')
