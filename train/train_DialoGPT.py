@@ -118,7 +118,13 @@ for epo in range(NUM_EPOCH):
 
         # labels, by masking out padding tokens and question part (exclude them while computing loss)
         labels = input_encoding['input_ids'].detach().clone()
-        labels[labels == question_encoding['input_ids']] = -100
+        try:
+            labels[labels == question_encoding['input_ids']] = -100
+        except RuntimeError:
+            print(f'labels.shape: {labels.shape}')
+            print(f"question_encoding.shape: {question_encoding['input_ids'].shape}")
+            print(f"input_encoding.shape: {input_encoding['input_ids'].shape}")
+            continue
 
         # zero-out gradient
         optimizer.zero_grad()
@@ -179,8 +185,13 @@ for epo in range(NUM_EPOCH):
 
             # labels, by masking out padding tokens and question part (exclude them while computing loss)
             labels = input_encoding['input_ids'].detach().clone()
-            labels[labels == question_encoding['input_ids']] = -100
-
+            try:
+                labels[labels == question_encoding['input_ids']] = -100
+            except RuntimeError:
+                print(f'labels.shape: {labels.shape}')
+                print(f"question_encoding.shape: {question_encoding['input_ids'].shape}")
+                print(f"input_encoding.shape: {input_encoding['input_ids'].shape}")
+                continue
             # forward pass
             outputs = model(**input_encoding, labels=labels)
 
