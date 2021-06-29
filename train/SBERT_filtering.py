@@ -8,7 +8,6 @@ Using SBERT to encode query and sentences from text document and using cosine si
 '''
 model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
 
-
 # similar to top-k sampling, choose k most similar sentences
 def find_top_k(query, text, k=6):
     sentences = [s.strip() for s in text.split('.')]
