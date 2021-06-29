@@ -2,6 +2,10 @@ import torch
 import os
 import linecache
 import time
+import matplotlib.pyplot as plt
+from datasets import tqdm
+import seaborn as sns
+from train.SBERT_filtering import find_top_k
 
 
 def matching_score(gold, ref):
@@ -154,22 +158,51 @@ if __name__ == '__main__':
     word_count = 0
     import pysbd
     seg = pysbd.Segmenter(language='en', clean=False)
-
+    input_len = []
     for file_type in ['train', 'dev', 'test']:
         dataset = InterviewDatasetESPN(use_wiki=True, data=file_type)
 
-        data_loader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False)
+        data_loader = torch.utils.data.DataLoader(dataset, batch_size=50, shuffle=False)
 
-        for batch in data_loader:
-            respondent_set.add(batch['respondent'][0])
-            utterance_count += len([sentence for sentence in list(seg.segment(batch['question'][0]))])
-            utterance_count += len([sentence for sentence in list(seg.segment(batch['response'][0]))])
-            word_count += len(batch['question'][0].split())
-            word_count += len(batch['response'][0].split())
+        for batch in tqdm(data_loader):
+            # respondent_set.add(batch['respondent'][0])
+            # utterance_count += len([sentence for sentence in list(seg.segment(batch['question'][0]))])
+            # utterance_count += len([sentence for sentence in list(seg.segment(batch['response'][0]))])
+            # word_count += len(batch['question'][0].split())
+            # word_count += len(batch['response'][0].split())
+            batch_q = batch['question']
+            batch_r = batch['response']
+            batch_game_wiki = batch['game_wiki_id']
+            batch_section_wiki = batch['section_wiki_id']
+            batch_respondent_wiki = batch['respondent_wiki']
+            for i in range(len(batch_q)):
+                if batch_game_wiki[i] != '':
+                    batch_game_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_game_wiki[i]))
+                if batch_section_wiki[i] != '':
+                    batch_section_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_section_wiki[i]))
+                if batch_respondent_wiki[i] != '':
+                    batch_respondent_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_respondent_wiki[i]))
 
-    print(f'There are {len(respondent_set)} unique interviewees.')
-    print(f'There are {utterance_count} utterances.')
-    print(f'There are {word_count} words.')
+            batch_wiki = [f'{game_wiki.strip()}. {section_wiki.strip()}. {respondent_wiki.strip()}.'
+                          for game_wiki, section_wiki, respondent_wiki in
+                          zip(batch_game_wiki, batch_section_wiki, batch_respondent_wiki)]
+
+            inputs = [wiki + q for q, wiki in zip(batch_q, batch_wiki)]
+
+            input_len.append(len(inputs[0].split()) + 1)
+
+    sns.set_theme()
+    sns.set_context('paper')
+    sns.histplot(input_len)
+    plt.xlabel('Input length (number of words)')
+    plt.ylabel('Number of questions')
+    # plt.show()
+    plt.savefig(os.path.join('figures', 'wiki-concat-input-length-distribution.png'))
+
+
+    # print(f'There are {len(respondent_set)} unique interviewees.')
+    # print(f'There are {utterance_count} utterances.')
+    # print(f'There are {word_count} words.')
 
     # counter = 0
     # total = 0
