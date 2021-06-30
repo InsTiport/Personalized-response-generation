@@ -150,6 +150,7 @@ with torch.no_grad():
     total_loss = 0
     distinct_one = []
     distinct_two = []
+    prediction_len = []
     for batch in tqdm(test_data_loader):
         batch_q = batch['question']
         batch_r = batch['response']
@@ -216,6 +217,7 @@ with torch.no_grad():
         for prediction in predictions:
             distinct_one.append(distinct_n_sentence_level(prediction, 1))
             distinct_two.append(distinct_n_sentence_level(prediction, 2))
+            prediction_len.append(len(prediction.split()))
 
         references = [[r] for r in responses]
         metric_bleu.add_batch(predictions=predictions, references=references)
@@ -233,6 +235,7 @@ with torch.no_grad():
     print(f'BertScore: {torch.mean(torch.tensor(score_bert_score["f1"]))}')
     print(f'Distinct-1: {torch.mean(torch.tensor(distinct_one))}')
     print(f'Distinct-2: {torch.mean(torch.tensor(distinct_two))}')
+    print(f'Average length: {torch.mean(torch.tensor(prediction_len))}')
     # write results to file
     log_file.write(f'eval_bsz:{EVAL_BATCH_SIZE} ')
     log_file.write(f'use_beam_search:{use_beam} ')
@@ -244,9 +247,10 @@ with torch.no_grad():
         log_file.write(f'k:{top_k} ')
     log_file.write(f'perplexity:{round(perplexity, 2)} ')
     log_file.write(f'BLEU:{round(score_bleu["score"], 1)} ')
-    log_file.write(f'BertScore:{torch.mean(torch.tensor(score_bert_score["f1"]))}\n')  # average F-1 of BERTScore
-    log_file.write(f'Distinct1:{torch.mean(torch.tensor(distinct_one))}\n')
-    log_file.write(f'Distinct2:{torch.mean(torch.tensor(distinct_two))}\n')
+    log_file.write(f'BertScore:{torch.mean(torch.tensor(score_bert_score["f1"]))} ')  # average F-1 of BERTScore
+    log_file.write(f'Distinct1:{torch.mean(torch.tensor(distinct_one))} ')
+    log_file.write(f'Distinct2:{torch.mean(torch.tensor(distinct_two))} ')
+    log_file.write(f'Avg_len:{torch.mean(torch.tensor(prediction_len))}\n')
     log_file.close()
 
 # # sample predictions which get full BLEU score
