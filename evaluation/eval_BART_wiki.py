@@ -236,7 +236,7 @@ with torch.no_grad():
     print(f'BertScore: {torch.mean(torch.tensor(score_bert_score["f1"]))}')
     print(f'Distinct-1: {torch.mean(torch.tensor(distinct_one))}')
     print(f'Distinct-2: {torch.mean(torch.tensor(distinct_two))}')
-    print(f'Average length: {torch.mean(torch.tensor(prediction_len))}')
+    print(f'Average length: {torch.mean(torch.tensor(prediction_len, dtype=torch.float))}')
     # write results to file
     log_file.write(f'eval_bsz:{EVAL_BATCH_SIZE} ')
     log_file.write(f'use_beam_search:{use_beam} ')
@@ -251,7 +251,7 @@ with torch.no_grad():
     log_file.write(f'BertScore:{torch.mean(torch.tensor(score_bert_score["f1"]))} ')  # average F-1 of BERTScore
     log_file.write(f'Distinct1:{torch.mean(torch.tensor(distinct_one))} ')
     log_file.write(f'Distinct2:{torch.mean(torch.tensor(distinct_two))} ')
-    log_file.write(f'Avg_len:{torch.mean(torch.tensor(prediction_len))}\n')
+    log_file.write(f'Avg_len:{torch.mean(torch.tensor(prediction_len, dtype=torch.float))}\n')
     log_file.close()
 
 # # sample predictions which get full BLEU score
