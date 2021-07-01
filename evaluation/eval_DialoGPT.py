@@ -273,6 +273,7 @@ batch_q = [q.replace('\u2011', '') for q in batch_q]
 predictions = [p.replace('\u2011', '') for p in predictions]
 references = [r[0].replace('\u2011', '') for r in references]
 print_len = EVAL_BATCH_SIZE // 2  # print these number of predictions
+print_len = EVAL_BATCH_SIZE
 for q, prediction, gold in zip(batch_q[:print_len], predictions[:print_len], references[:print_len]):
     print(f'Question: {q}')
     print(f'Model prediction: {prediction}')
