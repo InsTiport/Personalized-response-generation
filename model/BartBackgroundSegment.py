@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.abspath('..'))
 from transformers_fork.src.transformers.modeling_outputs import BaseModelOutput, Seq2SeqModelOutput, Seq2SeqLMOutput
 from transformers_fork.src.transformers.models.bart.modeling_bart import BartPretrainedModel, BartEncoder, BartDecoder
 
+
 def shift_tokens_right(input_ids: torch.Tensor, pad_token_id: int, decoder_start_token_id: int):
     """
     Shift input ids one token to the right.
@@ -21,6 +22,7 @@ def shift_tokens_right(input_ids: torch.Tensor, pad_token_id: int, decoder_start
     shifted_input_ids.masked_fill_(shifted_input_ids == -100, pad_token_id)
 
     return shifted_input_ids
+
 
 class BartModelBackgroundSegment(BartPretrainedModel):
     def __init__(self, config: BartConfig):
@@ -132,6 +134,7 @@ class BartModelBackgroundSegment(BartPretrainedModel):
             encoder_hidden_states=encoder_outputs.hidden_states,
             encoder_attentions=encoder_outputs.attentions,
         )
+
 
 class BartBackgroundSegment(BartPretrainedModel):
     base_model_prefix = "model"
