@@ -1,6 +1,6 @@
 import argparse
 from matplotlib import pyplot as plt
-from transformers import BartTokenizer
+from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import AdamW
 import torch
 import numpy as np
@@ -9,6 +9,7 @@ import tqdm
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 from interview_dataset import InterviewDatasetESPN
+from SBERT_filtering import find_top_k
 from model.BartBackgroundSegment import BartBackgroundSegment
 
 # setup args
@@ -51,10 +52,10 @@ torch.manual_seed(0)
 np.random.seed(0)
 # model saving and logging paths
 os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
-MODEL_NAME = f'bart-base-background_bsz_{BATCH_SIZE}'
+MODEL_NAME = f'bart-wiki-segment_bsz_{BATCH_SIZE}'
 log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.log'), 'w')
 
-print(f'Training BART base with background for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
+print(f'Training BART wiki with segment embedding for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
 
 '''
 model and tokenizer
@@ -87,7 +88,7 @@ for epo in range(NUM_EPOCH):
     '''
     DataLoader
     '''
-    dataset = InterviewDatasetESPN()
+    dataset = InterviewDatasetESPN(use_wiki=True)
     data_loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=BATCH_SIZE,
@@ -100,15 +101,28 @@ for epo in range(NUM_EPOCH):
     for batch in train_iterator_with_progress:
         batch_q = batch['question']
         batch_r = batch['response']
-        batch_bg = batch['background']
+        batch_game_wiki = batch['game_wiki_id']
+        batch_section_wiki = batch['section_wiki_id']
+        batch_respondent_wiki = batch['respondent_wiki']
+        for i in range(len(batch_q)):
+            if batch_game_wiki[i] != '':
+                batch_game_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_game_wiki[i]))
+            if batch_section_wiki[i] != '':
+                batch_section_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_section_wiki[i]))
+            if batch_respondent_wiki[i] != '':
+                batch_respondent_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_respondent_wiki[i]))
+
+        batch_wiki = [f'{game_wiki.strip()}. {section_wiki.strip()}. {respondent_wiki.strip()}.'
+                      for game_wiki, section_wiki, respondent_wiki in
+                      zip(batch_game_wiki, batch_section_wiki, batch_respondent_wiki)]
 
         # input encoding
         question_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
-        background_encoding = tokenizer(batch_bg, return_tensors='pt', padding=True, truncation=True)
+        wiki_encoding = tokenizer(batch_wiki, return_tensors='pt', padding=True, truncation=True)
         question_length = torch.count_nonzero(torch.ones_like(question_encoding.input_ids), dim=1)
-        background_length = torch.count_nonzero(torch.ones_like(background_encoding.input_ids), dim=1)
-        input_ids = torch.cat((question_encoding.input_ids, background_encoding.input_ids), dim=1).to(device)
-        attention_mask = torch.cat((question_encoding.attention_mask, background_encoding.attention_mask), dim=1).to(device)
+        wiki_length = torch.count_nonzero(torch.ones_like(wiki_encoding.input_ids), dim=1)
+        input_ids = torch.cat((question_encoding.input_ids, wiki_encoding.input_ids), dim=1).to(device)
+        attention_mask = torch.cat((question_encoding.attention_mask, wiki_encoding.attention_mask), dim=1).to(device)
         if input_ids.shape[1] > model.config.max_position_embeddings:
             input_ids = input_ids[:, :model.config.max_position_embeddings]
             attention_mask = attention_mask[:, :model.config.max_position_embeddings]
@@ -124,7 +138,7 @@ for epo in range(NUM_EPOCH):
 
         # forward pass
         outputs = model(input_ids, attention_mask=attention_mask, labels=target_ids,
-                        question_length=question_length, background_length=background_length)
+                        question_length=question_length, background_length=wiki_length)
 
         # compute loss and perform a step
         loss = outputs.loss
@@ -151,7 +165,7 @@ for epo in range(NUM_EPOCH):
         '''
         DataLoader
         '''
-        valid_dataset = InterviewDatasetESPN(data='dev')
+        valid_dataset = InterviewDatasetESPN(data='dev', use_wiki=True)
         valid_data_loader = torch.utils.data.DataLoader(
             valid_dataset,
             batch_size=BATCH_SIZE,
@@ -163,17 +177,28 @@ for epo in range(NUM_EPOCH):
         for batch in valid_data_loader:
             batch_q = batch['question']
             batch_r = batch['response']
-            batch_bg = batch['background']
+            batch_game_wiki = batch['game_wiki_id']
+            batch_section_wiki = batch['section_wiki_id']
+            batch_respondent_wiki = batch['respondent_wiki']
+            for i in range(len(batch_q)):
+                if batch_game_wiki[i] != '':
+                    batch_game_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_game_wiki[i]))
+                if batch_section_wiki[i] != '':
+                    batch_section_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_section_wiki[i]))
+                if batch_respondent_wiki[i] != '':
+                    batch_respondent_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_respondent_wiki[i]))
 
-            inputs = [q + tokenizer.sep_token + bg for q, bg in zip(batch_q, batch_bg)]
+            batch_wiki = [f'{game_wiki.strip()}. {section_wiki.strip()}. {respondent_wiki.strip()}.'
+                          for game_wiki, section_wiki, respondent_wiki in
+                          zip(batch_game_wiki, batch_section_wiki, batch_respondent_wiki)]
 
             # input encoding
             question_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
-            background_encoding = tokenizer(batch_bg, return_tensors='pt', padding=True, truncation=True)
+            wiki_encoding = tokenizer(batch_wiki, return_tensors='pt', padding=True, truncation=True)
             question_length = torch.count_nonzero(torch.ones_like(question_encoding.input_ids), dim=1)
-            background_length = torch.count_nonzero(torch.ones_like(background_encoding.input_ids), dim=1)
-            input_ids = torch.cat((question_encoding.input_ids, background_encoding.input_ids), dim=1).to(device)
-            attention_mask = torch.cat((question_encoding.attention_mask, background_encoding.attention_mask), dim=1).to(device)
+            wiki_length = torch.count_nonzero(torch.ones_like(wiki_encoding.input_ids), dim=1)
+            input_ids = torch.cat((question_encoding.input_ids, wiki_encoding.input_ids), dim=1).to(device)
+            attention_mask = torch.cat((question_encoding.attention_mask, wiki_encoding.attention_mask), dim=1).to(device)
             if input_ids.shape[1] > model.config.max_position_embeddings:
                 input_ids = input_ids[:, :model.config.max_position_embeddings]
                 attention_mask = attention_mask[:, :model.config.max_position_embeddings]
@@ -184,8 +209,8 @@ for epo in range(NUM_EPOCH):
             target_ids[target_ids == model.config.pad_token_id] = -100
 
             # forward pass
-            outputs = model(input_ids, attention_mask=attention_mask, labels=target_ids, question_length=question_length, background_length=background_length)
-
+            outputs = model(input_ids, attention_mask=attention_mask, labels=target_ids,
+                            question_length=question_length, background_length=wiki_length)
             # loss
             loss = outputs.loss
             total_loss += float(loss)
