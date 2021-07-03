@@ -167,7 +167,15 @@ for epo in range(NUM_EPOCH):
             inputs = [q + tokenizer.sep_token + bg for q, bg in zip(batch_q, batch_bg)]
 
             # input encoding
-            input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
+            question_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
+            background_encoding = tokenizer(batch_bg, return_tensors='pt', padding=True, truncation=True)
+            question_length = torch.count_nonzero(torch.ones_like(question_encoding.input_ids), dim=1)
+            background_length = torch.count_nonzero(torch.ones_like(background_encoding.input_ids), dim=1)
+            input_ids = torch.cat((question_encoding.input_ids, background_encoding.input_ids), dim=1).to(device)
+            attention_mask = torch.cat((question_encoding.attention_mask, background_encoding.attention_mask), dim=1).to(device)
+            if input_ids.shape[1] > model.config.max_position_embeddings:
+                input_ids = input_ids[:, :model.config.max_position_embeddings]
+                attention_mask = attention_mask[:, :model.config.max_position_embeddings]
 
             # target encoding
             target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
@@ -175,7 +183,7 @@ for epo in range(NUM_EPOCH):
             target_ids[target_ids == model.config.pad_token_id] = -100
 
             # forward pass
-            outputs = model(**input_encoding, labels=target_ids)
+            outputs = model(input_ids, attention_mask=attention_mask, labels=target_ids, question_length=question_length, background_length=background_length)
 
             # loss
             loss = outputs.loss
