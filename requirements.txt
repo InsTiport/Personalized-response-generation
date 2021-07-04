@@ -18,4 +18,3 @@ scikit-learn
 scipy
 sentence_transformers
 seaborn
-metrics
