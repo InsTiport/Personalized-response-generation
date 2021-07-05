@@ -86,7 +86,7 @@ hyper-parameter and generation specifications
 '''
 DEVICE_ID = args.gpu  # adjust this to use an unoccupied GPU
 EVAL_BATCH_SIZE = args.eval_batch_size
-MODEL_NAME = f'bart-wiki-concat_bsz_{args.batch_size}_epoch_{args.epoch}'
+MODEL_NAME = f'bart-wiki-segment_bsz_{args.batch_size}_epoch_{args.epoch}'
 
 # specifications
 r'''MAX_LEN = default value: max length of model input'''
@@ -202,7 +202,7 @@ with torch.no_grad():
                 early_stopping=True,
                 num_return_sequences=num_return_sentences,
                 question_length=question_length,
-                background_length=background_length
+                background_length=wiki_length
             )
         else:
             model_res_ids = model.generate(
@@ -214,7 +214,7 @@ with torch.no_grad():
                 top_k=top_k,
                 num_return_sequences=num_return_sentences,
                 question_length=question_length,
-                background_length=background_length
+                background_length=wiki_length
             )
 
         # add generated responses and gold responses for future BLEU computation
