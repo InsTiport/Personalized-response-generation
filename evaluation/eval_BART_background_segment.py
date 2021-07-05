@@ -110,7 +110,7 @@ logging
 '''
 os.makedirs(os.path.dirname('evaluation_results' + '/'), exist_ok=True)
 log_file = open(os.path.join('evaluation_results', f'{MODEL_NAME}.ev'), 'a+')
-sample_results_file = open(os.path.join('evaluation_results', f'{MODEL_NAME}_sample_results.txt'), 'w')
+sample_results_file = open(os.path.join('evaluation_results', f'{MODEL_NAME}_sample_results.txt'), 'w', encoding='utf-8')
 
 '''
 model and tokenizer
@@ -231,10 +231,13 @@ with torch.no_grad():
             references = [r[0].replace('\u2011', '') for r in references]
             batch_bg = [bg.replace('\u2011', '') for bg in batch_bg]
             for q, prediction, gold, bg in zip(batch_q, predictions, references, batch_bg):
-                sample_results_file.write(f'Background: {bg}\n')
-                sample_results_file.write(f'Question: {q}\n')
-                sample_results_file.write(f'Model prediction: {prediction}\n')
-                sample_results_file.write(f'Gold: {gold}\n\n')
+                try:
+                    sample_results_file.write(f'Background: {bg}\n')
+                    sample_results_file.write(f'Question: {q}\n')
+                    sample_results_file.write(f'Model prediction: {prediction}\n')
+                    sample_results_file.write(f'Gold: {gold}\n\n')
+                except Exception as e:
+                    print(e)
 
     sample_results_file.close()
 
