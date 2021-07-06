@@ -121,7 +121,7 @@ if device == 'cuda':
 # load model
 SAVE_PATH = os.path.join('model_weights', f'{MODEL_NAME}.pt')
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-base').to(device)
-model.load_state_dict(torch.load(SAVE_PATH, map_location=device))
+# model.load_state_dict(torch.load(SAVE_PATH, map_location=device))
 
 model.eval()
 

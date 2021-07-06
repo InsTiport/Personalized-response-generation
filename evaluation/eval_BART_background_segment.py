@@ -86,7 +86,7 @@ hyper-parameter and generation specifications
 '''
 DEVICE_ID = args.gpu  # adjust this to use an unoccupied GPU
 EVAL_BATCH_SIZE = args.eval_batch_size
-MODEL_NAME = f'bart-base-background_bsz_{args.batch_size}_epoch_{args.epoch}'
+MODEL_NAME = f'bart-base-background-segment_bsz_{args.batch_size}_epoch_{args.epoch}'
 
 # specifications
 r'''MAX_LEN = default value: max length of model input'''

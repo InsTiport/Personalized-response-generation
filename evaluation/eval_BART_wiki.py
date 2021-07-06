@@ -230,10 +230,10 @@ with torch.no_grad():
             batch_q = [q.replace('\u2011', '') for q in batch_q]
             predictions = [p.replace('\u2011', '') for p in predictions]
             references = [r[0].replace('\u2011', '') for r in references]
-            batch_bg = [bg.replace('\u2011', '') for bg in batch_bg]
-            for q, prediction, gold, bg in zip(batch_q, predictions, references, batch_bg):
+            batch_wiki = [wiki.replace('\u2011', '') for wiki in batch_wiki]
+            for q, prediction, gold, wiki in zip(batch_q, predictions, references, batch_wiki):
                 try:
-                    sample_results_file.write(f'Background: {bg}\n')
+                    sample_results_file.write(f'Wiki: {wiki}\n')
                     sample_results_file.write(f'Question: {q}\n')
                     sample_results_file.write(f'Model prediction: {prediction}\n')
                     sample_results_file.write(f'Gold: {gold}\n\n')
