@@ -224,7 +224,7 @@ with torch.no_grad():
         batch_prev_r = [prev_r[0].replace('\u2011', '') for prev_r in batch_prev_r]
         for q, prediction, gold, prev_q, prev_r in zip(batch_q, predictions, references, batch_prev_q, batch_prev_r):
             try:
-                sample_results_file.wirte(f'Prev Question: {prev_q}\n')
+                sample_results_file.write(f'Prev Question: {prev_q}\n')
                 sample_results_file.write(f'Prev Response: {prev_r}\n')
                 sample_results_file.write(f'Question: {q}\n')
                 sample_results_file.write(f'Model prediction: {prediction}\n')
