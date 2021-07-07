@@ -6,7 +6,7 @@ from transformers import BartForConditionalGeneration, BartTokenizer
 
 # Specify question to ask BART
 # question = 'Did something happen to Reed late in the game, or did you have another reason to make the change at quarterback?'
-question = 'hi, how are you doing today?'
+question = 'How badly does your team want this?'
 
 # setup args
 arg_parser = argparse.ArgumentParser()
