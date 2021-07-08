@@ -61,7 +61,7 @@ torch.manual_seed(SEED)
 np.random.seed(SEED)
 # model saving and logging paths
 os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
-MODEL_NAME = f'bart-wiki-segment_bsz_{BATCH_SIZE}'
+MODEL_NAME = f'bart-wiki-segment_bsz_{BATCH_SIZE}_seed_{SEED}'
 log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.log'), 'w')
 
 print(f'Training BART wiki with segment embedding for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')

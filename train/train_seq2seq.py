@@ -77,9 +77,9 @@ np.random.seed(SEED)
 # model saving and logging paths
 os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
 if args.speaker:
-    MODEL_NAME = f'speaker_bsz_{BATCH_SIZE}'
+    MODEL_NAME = f'speaker_bsz_{BATCH_SIZE}_seed_{SEED}'
 else:
-    MODEL_NAME = f'seq2seq_bsz_{BATCH_SIZE}'
+    MODEL_NAME = f'seq2seq_bsz_{BATCH_SIZE}_seed_{SEED}'
 log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.log'), 'w')
 
 if args.speaker:
