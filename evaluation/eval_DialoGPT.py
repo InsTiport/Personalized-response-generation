@@ -166,6 +166,7 @@ with torch.no_grad():
             batch_q,
             return_tensors='pt',
             padding='max_length',
+            truncation=True,
             max_length=input_encoding['input_ids'].shape[-1]
         ).to(device)
 
