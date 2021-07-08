@@ -37,6 +37,14 @@ arg_parser.add_argument(
     default=2,
     help=f'Specify batch size'
 )
+
+arg_parser.add_argument(
+    '--seed',
+    type=int,
+    default=0,
+    help=f'Specify random seed'
+)
+
 args = arg_parser.parse_args()
 os.chdir('../')
 
@@ -46,13 +54,13 @@ hyper-parameter
 DEVICE_ID = args.gpu  # adjust this to use an unoccupied GPU
 BATCH_SIZE = args.batch
 NUM_EPOCH = args.epoch
-
+SEED = args.seed
 '''
 control and logging
 '''
 # control randomness
-torch.manual_seed(0)
-np.random.seed(0)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
 # model saving and logging paths
 os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
 MODEL_NAME = f'bart-base-wiki_bsz_{BATCH_SIZE}'

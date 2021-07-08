@@ -18,3 +18,17 @@ scikit-learn
 scipy
 sentence_transformers
 seaborn
+nltk
+filelock
+packaging
+sentencepiece
+Pillow
+sacremoses
+tokenizers
+regex
+six
+pydantic
+attrs
+PyYAML
+torchvision
+setuptools

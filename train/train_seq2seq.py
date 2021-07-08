@@ -30,22 +30,32 @@ arg_parser.add_argument(
     default=5,
     help=f'Specify number of training epochs'
 )
+
 arg_parser.add_argument(
     '-b', '--batch',
     type=int,
     default=2,
     help=f'Specify batch size'
 )
+
 arg_parser.add_argument(
     '--max_grad_norm',
     type=float,
     default=1.0,
     help=f'Max gradient norm'
 )
+
 arg_parser.add_argument(
     '-s', '--speaker',
     action='store_true',
     help=f'Use speaker embedding'
+)
+
+arg_parser.add_argument(
+    '--seed',
+    type=int,
+    default=0,
+    help=f'Specify random seed'
 )
 
 args = arg_parser.parse_args()
@@ -57,13 +67,13 @@ hyper-parameter
 DEVICE_ID = args.gpu  # adjust this to use an unoccupied GPU
 BATCH_SIZE = args.batch
 NUM_EPOCH = args.epoch
-
+SEED = args.seed
 '''
 control and logging
 '''
 # control randomness
-torch.manual_seed(0)
-np.random.seed(0)
+torch.manual_seed(SEED)
+np.random.seed(SEED)
 # model saving and logging paths
 os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
 if args.speaker:
