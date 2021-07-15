@@ -43,6 +43,13 @@ arg_parser.add_argument(
 )
 
 arg_parser.add_argument(
+    '--seed',
+    type=int,
+    default=0,
+    help='Specify random seed'
+)
+
+arg_parser.add_argument(
     '--num_beams',
     type=int,
     default=1,
@@ -84,7 +91,7 @@ hyper-parameter and generation specifications
 '''
 DEVICE_ID = args.gpu  # adjust this to use an unoccupied GPU
 EVAL_BATCH_SIZE = args.eval_batch_size
-MODEL_NAME = f'bart-base-background-cat_bsz_{args.batch_size}_epoch_{args.epoch}'
+MODEL_NAME = f'bart-base-background-cat_bsz_{args.batch_size}_seed_{args.seed}_epoch_{args.epoch}'
 
 # specifications
 r'''MAX_LEN = default value: max length of model input'''

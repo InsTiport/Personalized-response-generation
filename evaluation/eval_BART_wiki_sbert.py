@@ -5,12 +5,13 @@ import datasets
 import numpy as np
 import torch
 from tqdm import tqdm
-from transformers import BartForConditionalGeneration, BartTokenizer
+from transformers import BartTokenizer
+from sentence_transformers import SentenceTransformer
 
 sys.path.insert(0, os.path.abspath('..'))
+from SBERT_filtering import find_top_k
 from interview_dataset import InterviewDatasetESPN
 from model.BartWiki import BartWiki
-from sentence_transformers import SentenceTransformer
 from metrics.distinct_n import distinct_n_sentence_level
 
 
@@ -156,13 +157,22 @@ with torch.no_grad():
     for batch in tqdm(test_data_loader):
         batch_q = batch['question']
         batch_r = batch['response']
-        batch_sw = batch['section_wiki']
-        batch_gw = batch['game_wiki']
+        batch_game_wiki = batch['game_wiki_id']
+        batch_section_wiki = batch['section_wiki_id']
+        batch_respondent_wiki = batch['respondent_wiki']
+        for i in range(len(batch_q)):
+            if batch_game_wiki[i] != '':
+                batch_game_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_game_wiki[i]))
+            if batch_section_wiki[i] != '':
+                batch_section_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_section_wiki[i]))
+            if batch_respondent_wiki[i] != '':
+                batch_respondent_wiki[i] = '. '.join(find_top_k(batch_q[i], batch_respondent_wiki[i]))
 
-        # input encoding
-        input_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True).to(device)
-        section_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_sw))
-        game_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_gw))
+        section_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_section_wiki))
+        game_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_game_wiki))
+        respondent_wiki_encoding = torch.tensor(sentence_encoder.encode(batch_respondent_wiki))
+
+        input_encoding = tokenizer(inputs, return_tensors='pt', padding=True, truncation=True).to(device)
 
         # target encoding
         target_encoding = tokenizer(batch_r, return_tensors='pt', padding=True, truncation=True)
