@@ -1,3 +1,4 @@
+from logging import exception
 import os
 import argparse
 from transformers import pipeline
@@ -37,8 +38,8 @@ for f in os.listdir('data/interviewee_wiki'):
     interviewee_wiki_path.append(os.path.join('data', 'interviewee_wiki', f))
 
 for path in tqdm(espn_file_path + wiki_file_path + interviewee_wiki_path):
-    with open(path, 'r') as espn_file:
-        text = espn_file.read()
+    with open(path, 'r', encoding='utf-8') as f:
+        text = f.read()
         
         summarized = ''
         if len(text.split(' ')) < 800:
@@ -49,7 +50,9 @@ for path in tqdm(espn_file_path + wiki_file_path + interviewee_wiki_path):
                 summarized_block = summarizer(current_block, truncation=True, max_length=50, min_length=30, do_sample=False)[0]['summary_text']
                 summarized = summarized + ' ' + summarized_block[0] + ' ' + summarized_block[1]
         
-        with open(str(path) + '_summarized', 'w') as summarized_espn_file:
-            summarized_espn_file.write(summarized)
-            
-
+        try:
+            with open(str(path) + '_summarized', 'w', encoding='utf-8') as summarized_file:
+                summarized_file.write(summarized)
+        except Exception as e:
+            print(e)
+            print(path)
