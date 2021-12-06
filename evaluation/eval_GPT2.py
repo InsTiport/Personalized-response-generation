@@ -140,6 +140,7 @@ with torch.no_grad():
             prompt = ''
             interviewee_name = batch['respondent'][b].split('|')[0].split('_')[0]
             if batch['game_wiki_id'][b] != '':
+                print(batch['game_wiki_id'][b])
                 with open(os.path.join('data', 'wiki', batch['game_wiki_id'][b]), 'r') as wiki_file:
                     wiki_text = wiki_file.read()
                     summarized = ''
