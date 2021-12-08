@@ -132,7 +132,7 @@ with torch.no_grad():
     with open(os.path.join('data', 'interviewee.csv')) as r:
         for line in r:
             line = line.rstrip()
-            interviewee_name = [line[line.index('_')]]
+            interviewee_name = [line[:line.index('_')]]
 
             print(interviewee_name)
 
