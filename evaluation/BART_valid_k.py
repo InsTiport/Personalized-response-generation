@@ -162,6 +162,4 @@ with torch.no_grad():
 
             sample_results_file.write(prediction[0] + '\n')
 
-            break
-
 sample_results_file.close()
