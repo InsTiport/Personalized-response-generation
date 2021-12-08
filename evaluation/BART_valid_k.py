@@ -72,6 +72,20 @@ arg_parser.add_argument(
     help=f'Top-p nucleus sampling'
 )
 
+arg_parser.add_argument(
+    '--before',
+    type=str,
+    default='What sports does',
+    help='Part of the question to be asked before name'
+)
+
+arg_parser.add_argument(
+    '--after',
+    type=str,
+    default='play',
+    help='Part of the question to be asked after name'
+)
+
 args = arg_parser.parse_args()
 os.chdir('../')
 
@@ -124,6 +138,8 @@ model.eval()
 # load tokenizer
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
+print(f'Example question asked: {args.before}' + ' ' + '[name]' + args.after + '?')
+
 with torch.no_grad():
     with open(os.path.join('data', 'interviewee.csv')) as r:
         lines = r.readlines()
@@ -131,7 +147,7 @@ with torch.no_grad():
 
         for i in tqdm(range(0, len(lines), EVAL_BATCH_SIZE)):
             batch = lines[i:min(i+EVAL_BATCH_SIZE, len(lines))]
-            batch = ['What sports does ' + line[:line.index('_')] + ' play?' for line in batch if '_' in line[:line.index(',')]]
+            batch = [args.before + ' ' + line[:line.index('_')] + args.after + '?' for line in batch if '_' in line[:line.index(',')]]
 
             # input encoding
             input_encoding = tokenizer(batch, return_tensors='pt', padding=True, truncation=True).to(device)
