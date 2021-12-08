@@ -131,7 +131,7 @@ with torch.no_grad():
 
         for i in tqdm(range(0, len(lines), EVAL_BATCH_SIZE)):
             batch = lines[i:min(i+EVAL_BATCH_SIZE, len(lines))]
-            batch = ['Who is ' + line[:line.index('_')] + '?' for line in batch if '_' in line[:line.index(',')]]
+            batch = ['What sports does ' + line[:line.index('_')] + ' play?' for line in batch if '_' in line[:line.index(',')]]
 
             # input encoding
             input_encoding = tokenizer(batch, return_tensors='pt', padding=True, truncation=True).to(device)
