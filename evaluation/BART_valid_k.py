@@ -1,15 +1,11 @@
 import argparse
 import os
 import sys
-import datasets
-import numpy as np
 import torch
 from tqdm import tqdm
 from transformers import BartForConditionalGeneration, BartTokenizer
 
 sys.path.insert(0, os.path.abspath('..'))
-from interview_dataset import InterviewDatasetESPN
-from metrics.distinct_n import distinct_n_sentence_level
 
 # setup args
 arg_parser = argparse.ArgumentParser()
@@ -130,9 +126,9 @@ tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
 with torch.no_grad():
     with open(os.path.join('data', 'interviewee.csv')) as r:
-        for line in r:
+        for line in tqdm.tqdm(r):
             line = line.rstrip()
-            if '_' not in line:
+            if '_' not in line[:line.index(',')]:
                 continue
             interviewee_name = [line[:line.index('_')]]
 
