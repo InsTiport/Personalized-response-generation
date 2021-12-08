@@ -126,13 +126,11 @@ tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
 with torch.no_grad():
     with open(os.path.join('data', 'interviewee.csv')) as r:
-        for line in tqdm.tqdm(r):
+        for line in tqdm(r):
             line = line.rstrip()
             if '_' not in line[:line.index(',')]:
                 continue
             interviewee_name = [line[:line.index('_')]]
-
-            print(interviewee_name)
 
             # input encoding
             input_encoding = tokenizer(f'Who is {interviewee_name}?', return_tensors='pt', padding=True, truncation=True).to(device)
