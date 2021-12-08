@@ -132,6 +132,8 @@ with torch.no_grad():
     with open(os.path.join('data', 'interviewee.csv')) as r:
         for line in r:
             line = line.rstrip()
+            if '_' not in line:
+                continue
             interviewee_name = [line[:line.index('_')]]
 
             print(interviewee_name)
