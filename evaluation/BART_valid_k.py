@@ -20,7 +20,7 @@ arg_parser.add_argument(
 arg_parser.add_argument(
     '--eval_batch_size',
     type=int,
-    default=3,
+    default=10,
     help=f'Specify evaluation batch size'
 )
 
@@ -126,14 +126,15 @@ tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
 with torch.no_grad():
     with open(os.path.join('data', 'interviewee.csv')) as r:
-        for line in tqdm(r):
-            line = line.rstrip()
-            if '_' not in line[:line.index(',')]:
-                continue
-            interviewee_name = [line[:line.index('_')]]
+        lines = r.readlines()
+        lines = [line.rstrip() for line in lines]
+
+        for i in tqdm(range(0, len(lines), EVAL_BATCH_SIZE)):
+            batch = lines[i:min(i+EVAL_BATCH_SIZE, len(lines))]
+            batch = ['Who is ' + line[:line.index('_')] + '?' for line in batch if '_' in line[:line.index(',')]]
 
             # input encoding
-            input_encoding = tokenizer(f'Who is {interviewee_name}?', return_tensors='pt', padding=True, truncation=True).to(device)
+            input_encoding = tokenizer(batch, return_tensors='pt', padding=True, truncation=True).to(device)
 
             # generation
             if use_beam:
@@ -156,8 +157,9 @@ with torch.no_grad():
                 )
 
             # add generated responses and gold responses for future BLEU computation
-            prediction = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids]
+            predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids]
 
-            sample_results_file.write(prediction[0] + '\n')
+            for prediction in predictions:
+                sample_results_file.write(prediction + '\n')
 
 sample_results_file.close()
