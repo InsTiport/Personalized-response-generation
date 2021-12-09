@@ -154,7 +154,7 @@ class InterviewDatasetESPNSummarized(torch.utils.data.Dataset):
             all_news = []
             for news in line[4].split('|'):
                 try:
-                    with open(str(news) + '_summarized') as f:
+                    with open(str(news) + '_summarized', encoding='utf-8') as f:
                         all_news.append(f.read())
                 except:
                     file_path_rev = news[::-1]
@@ -163,12 +163,13 @@ class InterviewDatasetESPNSummarized(torch.utils.data.Dataset):
                     file_name = None
                     best_score = 0
                     for news_title in os.scandir(folder_path):
-                        matching = matching_score(news, news_title.path)
-                        if matching > best_score:
-                            file_name = news_title.path
-                            best_score = matching
+                        if str(news_title.path).endswith('_summarized'):
+                            matching = matching_score(news, news_title.path)
+                            if matching > best_score:
+                                file_name = news_title.path
+                                best_score = matching
 
-                    with open(str(file_name) + '_summarized') as f:
+                    with open(str(file_name), encoding='utf-8') as f:
                         all_news.append(f.read())
 
             line[4] = '|'.join(all_news)
@@ -178,7 +179,7 @@ class InterviewDatasetESPNSummarized(torch.utils.data.Dataset):
             # game wiki
             if len(line[2]) > 0:
                 try:
-                    with open(os.path.join('data', 'wiki', line[2] + '_summarized')) as f:
+                    with open(os.path.join('data', 'wiki', line[2] + '_summarized'), encoding='utf-8') as f:
                         line[2] = f.read()
                 except FileNotFoundError:
                     # do nothing
@@ -187,7 +188,7 @@ class InterviewDatasetESPNSummarized(torch.utils.data.Dataset):
             # section wiki
             if len(line[3]) > 0:
                 try:
-                    with open(os.path.join('data', 'wiki', line[3] + '_summarized')) as f:
+                    with open(os.path.join('data', 'wiki', line[3] + '_summarized'), encoding='utf-8') as f:
                         line[3] = f.read()
                 except FileNotFoundError:
                     line[3] = line[3]
@@ -195,7 +196,7 @@ class InterviewDatasetESPNSummarized(torch.utils.data.Dataset):
             # respondent wiki
             if len(line[13]) > 0:
                 try:
-                    with open(str(line[13]) + '_summarized') as f:
+                    with open(str(line[13]) + '_summarized', encoding='utf-8') as f:
                         line[13] = f.read()
                 except FileNotFoundError:
                     line[13] = line[13]
