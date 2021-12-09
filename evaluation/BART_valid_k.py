@@ -116,8 +116,11 @@ num_return_sentences = 1
 '''
 logging 
 '''
+q = args.before + ' ' + '[name]' + args.after + '?'
+print(f'Example question asked: {q}')
+
 os.makedirs(os.path.dirname('evaluation_results' + '/'), exist_ok=True)
-sample_results_file = open(os.path.join('evaluation_results', 'BART_interviewees.txt'), 'w', encoding='utf-8')
+sample_results_file = open(os.path.join('evaluation_results', f'{q.replace(" ", "_")}.txt'), 'w', encoding='utf-8')
 
 
 '''
@@ -137,8 +140,6 @@ model.eval()
 
 # load tokenizer
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
-
-print(f'Example question asked: {args.before}' + ' ' + '[name]' + args.after + '?')
 
 with torch.no_grad():
     with open(os.path.join('data', 'interviewee.csv')) as r:
