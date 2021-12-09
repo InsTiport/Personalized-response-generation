@@ -116,7 +116,7 @@ num_return_sentences = 1
 '''
 logging 
 '''
-q = args.before + ' ' + '[name]' + args.after + '?'
+q = args.before + '[name]' + args.after + '?'
 print(f'Example question asked: {q}')
 
 os.makedirs(os.path.dirname('evaluation_results' + '/'), exist_ok=True)
@@ -148,7 +148,7 @@ with torch.no_grad():
 
         for i in tqdm(range(0, len(lines), EVAL_BATCH_SIZE)):
             batch = lines[i:min(i+EVAL_BATCH_SIZE, len(lines))]
-            batch = [args.before + ' ' + line[:line.index('_')] + args.after + '?' for line in batch if '_' in line[:line.index(',')]]
+            batch = [args.before + line[:line.index('_')] + args.after + '?' for line in batch if '_' in line[:line.index(',')]]
 
             # input encoding
             input_encoding = tokenizer(batch, return_tensors='pt', padding=True, truncation=True).to(device)
