@@ -14,6 +14,36 @@ from interview_dataset import InterviewDatasetESPNSummarized
 arg_parser = argparse.ArgumentParser()
 
 arg_parser.add_argument(
+    '--game',
+    action='store_true',
+    help=f'Use game wiki'
+)
+
+arg_parser.add_argument(
+    '--section',
+    action='store_true',
+    help=f'Use section wiki'
+)
+
+arg_parser.add_argument(
+    '--espn',
+    action='store_true',
+    help=f'Use espn'
+)
+
+arg_parser.add_argument(
+    '--respondent',
+    action='store_true',
+    help=f'Use respondent wiki'
+)
+
+arg_parser.add_argument(
+    '--prev',
+    action='store_true',
+    help=f'Use previous response'
+)
+
+arg_parser.add_argument(
     '--gpu',
     type=int,
     default=0,
@@ -59,7 +89,7 @@ torch.manual_seed(SEED)
 np.random.seed(SEED)
 # model saving and logging paths
 os.makedirs(os.path.dirname('model_weights' + '/'), exist_ok=True)
-MODEL_NAME = f'bart-base_bsz_{BATCH_SIZE}_seed_{SEED}'
+MODEL_NAME = f'bart-base_question_bsz_{BATCH_SIZE}_seed_{SEED}'
 log_file = open(os.path.join('model_weights', f'{MODEL_NAME}.log'), 'w')
 
 print(f'Training BART base for {NUM_EPOCH} epochs, with batch size {BATCH_SIZE}')
@@ -106,46 +136,61 @@ for epo in range(NUM_EPOCH):
     train_iterator_with_progress = tqdm.tqdm(data_loader)
     idx = 0
     for batch in train_iterator_with_progress:
-        # construct prompt
-        batch_game_wiki = batch['game_wiki_id']
-        batch_section_wiki = batch['section_wiki_id']
-        batch_espn = batch['espn']
-        batch_interviewee_wiki = batch['respondent_wiki']
-        batch_prompt = []
-        for b in BATCH_SIZE:
-            batch_prompt.append(batch_game_wiki[b] + batch_section_wiki[b] + batch_espn[b] + batch_interviewee_wiki[b])
+        try:
+            # construct prompt
+            batch_game_wiki = batch['game_wiki_id']
+            batch_section_wiki = batch['section_wiki_id']
+            batch_espn = batch['espn']
+            batch_interviewee_wiki = batch['respondent_wiki']
+            batch_prev_response = batch['prev_response']
+            batch_prompt = []
+            for b in range(len(batch_game_wiki)):
+                prompt = ''
+                if args.game:
+                    prompt += batch_game_wiki[b]
+                if args.section:
+                    prompt += batch_section_wiki[b]
+                if args.espn:
+                    prompt += batch_espn[b]
+                if args.respondent:
+                    prompt += batch_interviewee_wiki[b]
+                if args.prev:
+                    prompt += batch_prev_response[b]
+                batch_prompt.append(prompt)
 
-        # construct question
-        batch_q = batch['question']
+            # construct question
+            batch_q = batch['question']
 
-        # input encoding
-        input_encoding = tokenizer(batch_prompt, return_tensors='pt', padding=True, truncation=True).to(device)
+            # input encoding
+            input_encoding = tokenizer(batch_prompt, return_tensors='pt', padding=True, truncation=True).to(device)
 
-        # target encoding
-        # this kind of embedding will make the input to BART decoder be like </s> <s> content </s>
-        target_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
-        target_ids = target_encoding['input_ids'].to(device)
-        target_ids[target_ids == model.config.pad_token_id] = -100
+            # target encoding
+            # this kind of embedding will make the input to BART decoder be like </s> <s> content </s>
+            target_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
+            target_ids = target_encoding['input_ids'].to(device)
+            target_ids[target_ids == model.config.pad_token_id] = -100
 
-        # zero-out gradient
-        optimizer.zero_grad()
+            # zero-out gradient
+            optimizer.zero_grad()
 
-        # forward pass
-        outputs = model(**input_encoding, labels=target_ids)
+            # forward pass
+            outputs = model(**input_encoding, labels=target_ids)
 
-        # compute loss and perform a step
-        loss = outputs.loss
-        loss.backward()
-        optimizer.step()
+            # compute loss and perform a step
+            loss = outputs.loss
+            loss.backward()
+            optimizer.step()
 
-        # if idx % 1000 == 0:
-        #     print(f'epoch: {epo}, batch: {idx}, memory reserved {torch.cuda.memory_reserved(DEVICE_ID) / 1e9} GB')
-        #     print(f'epoch: {epo}, batch: {idx}, memory allocated {torch.cuda.memory_allocated(DEVICE_ID) / 1e9} GB')
-        idx += 1
+            # if idx % 1000 == 0:
+            #     print(f'epoch: {epo}, batch: {idx}, memory reserved {torch.cuda.memory_reserved(DEVICE_ID) / 1e9} GB')
+            #     print(f'epoch: {epo}, batch: {idx}, memory allocated {torch.cuda.memory_allocated(DEVICE_ID) / 1e9} GB')
+            idx += 1
 
-        total_loss += float(loss)
-        train_iterator_with_progress.set_description(f'Epoch {epo}')
-        train_iterator_with_progress.set_postfix({'Loss': loss.item()})
+            total_loss += float(loss)
+            train_iterator_with_progress.set_description(f'Epoch {epo}')
+            train_iterator_with_progress.set_postfix({'Loss': loss.item()})
+        except Exception as e:
+            print(e)
 
     loss_record.append(total_loss)
     print(f'Loss in epoch {epo}: {total_loss}')
@@ -168,36 +213,51 @@ for epo in range(NUM_EPOCH):
         batch_num = 0
         total_loss = 0
         for batch in valid_data_loader:
-            # construct prompt
-            batch_game_wiki = batch['game_wiki_id']
-            batch_section_wiki = batch['section_wiki_id']
-            batch_espn = batch['espn']
-            batch_interviewee_wiki = batch['respondent_wiki']
-            batch_prompt = []
-            for b in BATCH_SIZE:
-                batch_prompt.append(batch_game_wiki[b] + batch_section_wiki[b] + batch_espn[b] + batch_interviewee_wiki[b])
+            try:
+                # construct prompt
+                batch_game_wiki = batch['game_wiki_id']
+                batch_section_wiki = batch['section_wiki_id']
+                batch_espn = batch['espn']
+                batch_interviewee_wiki = batch['respondent_wiki']
+                batch_prev_response = batch['prev_response']
+                batch_prompt = []
+                for b in range(len(batch_game_wiki)):
+                    prompt = ''
+                    if args.game:
+                        prompt += batch_game_wiki[b]
+                    if args.section:
+                        prompt += batch_section_wiki[b]
+                    if args.espn:
+                        prompt += batch_espn[b]
+                    if args.respondent:
+                        prompt += batch_interviewee_wiki[b]
+                    if args.prev:
+                        prompt += batch_prev_response[b]
+                    batch_prompt.append(prompt)
 
-            # construct question
-            batch_q = batch['question']
+                # construct question
+                batch_q = batch['question']
 
-            # input encoding
-            input_encoding = tokenizer(batch_prompt, return_tensors='pt', padding=True, truncation=True).to(device)
+                # input encoding
+                input_encoding = tokenizer(batch_prompt, return_tensors='pt', padding=True, truncation=True).to(device)
 
-            # target encoding
-            target_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
-            target_ids = target_encoding['input_ids'].to(device)
-            target_ids[target_ids == model.config.pad_token_id] = -100
+                # target encoding
+                target_encoding = tokenizer(batch_q, return_tensors='pt', padding=True, truncation=True)
+                target_ids = target_encoding['input_ids'].to(device)
+                target_ids[target_ids == model.config.pad_token_id] = -100
 
-            # zero-out gradient
-            optimizer.zero_grad()
+                # zero-out gradient
+                optimizer.zero_grad()
 
-            # forward pass
-            outputs = model(**input_encoding, labels=target_ids)
+                # forward pass
+                outputs = model(**input_encoding, labels=target_ids)
 
-            # loss
-            loss = outputs.loss
-            total_loss += float(loss)
-            batch_num += 1
+                # loss
+                loss = outputs.loss
+                total_loss += float(loss)
+                batch_num += 1
+            except Exception as e:
+                print(e)
 
         perplexity = np.exp(total_loss / batch_num)
         ppl_record.append(perplexity)
