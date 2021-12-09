@@ -184,5 +184,6 @@ with torch.no_grad():
                     counter += 1
 
         sample_results_file.write(f'{counter}/{len(lines)-1}')
+        print(f'{counter}/{len(lines)-1}')
 
 sample_results_file.close()
