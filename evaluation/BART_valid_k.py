@@ -143,12 +143,14 @@ tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
 with torch.no_grad():
     with open(os.path.join('data', 'interviewee.csv')) as r:
+        counter = 0
         lines = r.readlines()
         lines = [line.rstrip() for line in lines]
 
         for i in tqdm(range(0, len(lines), EVAL_BATCH_SIZE)):
             batch = lines[i:min(i+EVAL_BATCH_SIZE, len(lines))]
             batch = [args.before + line[:line.index('_')] + args.after + '?' for line in batch if '_' in line[:line.index(',')]]
+            sports_type = [line[line.index('_')+1:line.index(',')] for line in batch if '_' in line[:line.index(',')]]
 
             # input encoding
             input_encoding = tokenizer(batch, return_tensors='pt', padding=True, truncation=True).to(device)
@@ -176,7 +178,11 @@ with torch.no_grad():
             # add generated responses and gold responses for future BLEU computation
             predictions = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids]
 
-            for prediction in predictions:
+            for prediction, type in zip(predictions, sports_type):
                 sample_results_file.write(prediction + '\n')
+                if type.lower() in prediction.lower():
+                    counter += 1
+
+        sample_results_file.write(f'{counter}/{len(lines)-1}')
 
 sample_results_file.close()
