@@ -148,9 +148,9 @@ with torch.no_grad():
         lines = [line.rstrip() for line in lines]
 
         for i in tqdm(range(0, len(lines), EVAL_BATCH_SIZE)):
-            batch = lines[i:min(i+EVAL_BATCH_SIZE, len(lines))]
-            batch = [args.before + line[:line.index('_')] + args.after + '?' for line in batch if '_' in line[:line.index(',')]]
-            sports_type = [line[line.index('_')+1:line.index(',')] for line in batch if '_' in line[:line.index(',')]]
+            raw_batch = lines[i:min(i+EVAL_BATCH_SIZE, len(lines))]
+            batch = [args.before + line[:line.index('_')] + args.after + '?' for line in raw_batch if '_' in line[:line.index(',')]]
+            sports_type = [line[line.index('_')+1:line.index(',')] for line in raw_batch if '_' in line[:line.index(',')]]
 
             # input encoding
             input_encoding = tokenizer(batch, return_tensors='pt', padding=True, truncation=True).to(device)
