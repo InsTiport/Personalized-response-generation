@@ -2,6 +2,7 @@ import argparse
 from matplotlib import pyplot as plt
 from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import AdamW
+from transformers import pipeline
 import torch
 import numpy as np
 import os
@@ -118,6 +119,8 @@ if device == 'cuda':
 model = BartForConditionalGeneration.from_pretrained('facebook/bart-base').to(device)
 # load tokenizer
 tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
+# load summarizer
+summarizer = pipeline("summarization", device=args.gpu)
 
 # optimizer
 no_decay = ['bias', 'LayerNorm.weight']
@@ -168,7 +171,17 @@ for epo in range(NUM_EPOCH):
                 if args.respondent:
                     prompt += batch_interviewee_wiki[b]
                 if args.prev:
-                    prompt += batch_prev_response[b]
+                    text = batch_prev_response[b]
+                    summarized = ''
+                    if len(text.split(' ')) < 50:
+                        summarized = text
+                    else:
+                        for i in range(0, len(text.split(' ')) // 800, 2):
+                            current_block = [' '.join(text.split(' ')[i * 800: (i+1) * 800]), ' '.join(text.split(' ')[(i + 1) * 800: min((i+2) * 800, len(text.split(' ')))])]
+                            summarized_block = summarizer(current_block, truncation=True, max_length=50, min_length=30, do_sample=False)[0]['summary_text']
+                            summarized = summarized + ' ' + summarized_block[0] + ' ' + summarized_block[1]
+                    prompt += summarized
+
                 batch_prompt.append(prompt)
 
             # construct question
@@ -245,7 +258,17 @@ for epo in range(NUM_EPOCH):
                     if args.respondent:
                         prompt += batch_interviewee_wiki[b]
                     if args.prev:
-                        prompt += batch_prev_response[b]
+                        text = batch_prev_response[b]
+                        summarized = ''
+                        if len(text.split(' ')) < 50:
+                            summarized = text
+                        else:
+                            for i in range(0, len(text.split(' ')) // 800, 2):
+                                current_block = [' '.join(text.split(' ')[i * 800: (i+1) * 800]), ' '.join(text.split(' ')[(i + 1) * 800: min((i+2) * 800, len(text.split(' ')))])]
+                                summarized_block = summarizer(current_block, truncation=True, max_length=50, min_length=30, do_sample=False)[0]['summary_text']
+                                summarized = summarized + ' ' + summarized_block[0] + ' ' + summarized_block[1]
+                        prompt += summarized
+                        
                     batch_prompt.append(prompt)
 
                 # construct question
