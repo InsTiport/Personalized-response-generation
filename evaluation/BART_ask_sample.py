@@ -175,3 +175,4 @@ with torch.no_grad():
             prediction = [tokenizer.decode(g, skip_special_tokens=True) for g in model_res_ids][0]
 
             print(prediction)
+            print('\n')
